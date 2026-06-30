@@ -1,0 +1,6 @@
+notes.md
+.env
+.idea/
+*.iml
+target/
+node_modules/
