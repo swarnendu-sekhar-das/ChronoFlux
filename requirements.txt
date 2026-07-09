@@ -1,0 +1,21 @@
+# ChronoFlux Development & System Requirements
+
+# Note: This project uses Java (Maven) for the backend and React (npm/yarn) for the frontend.
+# This file lists the system-level dependencies required to run and develop the project, 
+# rather than Python pip packages, as Python is not part of the tech stack outlined in the implementation plan.
+
+# --- Infrastructure ---
+Docker
+Docker Compose (v2)
+
+# --- Backend (Spring Boot Microservices) ---
+Java JDK 21 (LTS)
+Maven 3.9.x
+
+# --- Frontend (React + Vite) ---
+Node.js (v18 or v21 recommended)
+npm or yarn
+
+# --- Testing & Tooling ---
+k6 (for load testing)
+curl (for healthcheck testing)
