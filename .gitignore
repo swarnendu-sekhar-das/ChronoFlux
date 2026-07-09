@@ -1,8 +1,32 @@
+# Custom Files
 notes.md
-.env
-.idea/
-*.iml
-target/
-node_modules/
 walkthrough.md
 interview_prep_phase1.md
+
+# Environment
+.env
+.env.local
+
+# Build outputs
+dist/
+build/
+node_modules/
+
+# Maven
+target/
+*.jar
+*.war
+*.ear
+*.class
+
+# OS generated
+.DS_Store
+*.log
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# VS Code
+.vscode/
