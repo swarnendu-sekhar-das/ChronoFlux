@@ -4,3 +4,4 @@ notes.md
 *.iml
 target/
 node_modules/
+walkthrough.md
