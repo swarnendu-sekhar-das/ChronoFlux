@@ -14,3 +14,10 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: false # Only admin-api manages migrations
+  quartz:
+    job-store-type: memory
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
