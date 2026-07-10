@@ -1,11 +1,16 @@
-node_modules/
-dist/
-build/
+# Custom Files
+notes.md
+walkthrough.md
+interview_prep_phase1.md
+
+# Environment
 .env
 .env.local
-.DS_Store
-.idea/
-*.log
+
+# Build outputs
+dist/
+build/
+node_modules/
 
 # Maven
 target/
@@ -13,6 +18,10 @@ target/
 *.war
 *.ear
 *.class
+
+# OS generated
+.DS_Store
+*.log
 
 # IntelliJ IDEA
 .idea/

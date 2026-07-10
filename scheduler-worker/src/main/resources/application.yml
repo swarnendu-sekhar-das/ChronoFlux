@@ -1,0 +1,23 @@
+server:
+  port: 0 # Random port for scaling
+
+spring:
+  application:
+    name: scheduler-worker
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/${POSTGRES_DB:chronoflux}}
+    username: ${POSTGRES_USER:chronoflux}
+    password: ${POSTGRES_PASSWORD:secret}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: false # Only admin-api manages migrations
+  quartz:
+    job-store-type: memory
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USER:guest}
+    password: ${RABBITMQ_PASS:guest}
