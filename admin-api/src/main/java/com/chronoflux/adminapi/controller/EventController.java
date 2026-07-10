@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.Optional;
 
 @RestController
@@ -31,14 +32,14 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LiveEvent> getEventById(@PathVariable Long id) {
+    public ResponseEntity<LiveEvent> getEventById(@PathVariable UUID id) {
         Optional<LiveEvent> event = eventRepository.findById(id);
         return event.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LiveEvent> updateEvent(@PathVariable Long id, @RequestBody LiveEvent eventDetails) {
+    public ResponseEntity<LiveEvent> updateEvent(@PathVariable UUID id, @RequestBody LiveEvent eventDetails) {
         Optional<LiveEvent> eventOptional = eventRepository.findById(id);
 
         if (eventOptional.isEmpty()) {
@@ -46,7 +47,7 @@ public class EventController {
         }
 
         LiveEvent event = eventOptional.get();
-        event.setName(eventDetails.getName());
+        event.setTitle(eventDetails.getTitle());
         event.setStatus(eventDetails.getStatus());
         event.setPayload(eventDetails.getPayload());
         event.setActiveFrom(eventDetails.getActiveFrom());
@@ -57,7 +58,7 @@ public class EventController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
         if (!eventRepository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }

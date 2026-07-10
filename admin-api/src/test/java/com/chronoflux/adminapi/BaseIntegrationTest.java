@@ -1,4 +1,4 @@
-package com.example.admin_api;
+package com.chronoflux.adminapi;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.test.context.SpringBootTest;

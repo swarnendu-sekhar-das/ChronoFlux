@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.Optional;
 
 @RestController
@@ -31,7 +32,7 @@ public class SchemaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventSchema> getSchemaById(@PathVariable Long id) {
+    public ResponseEntity<EventSchema> getSchemaById(@PathVariable UUID id) {
         Optional<EventSchema> schema = schemaRepository.findById(id);
         return schema.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

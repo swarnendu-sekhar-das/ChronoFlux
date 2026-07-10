@@ -5,6 +5,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
+import java.util.UUID;
 
 import java.time.Instant;
 import java.util.Map;
@@ -14,15 +15,15 @@ import java.util.Map;
 public class LiveEvent {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @ManyToOne(optional = false)
     @JoinColumn(name = "schema_id", nullable = false)
     private EventSchema schema;
 
     @Column(nullable = false)
-    private String name;
+    private String title;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -52,11 +53,11 @@ public class LiveEvent {
 
     // Getters and Setters
 
-    public Long getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 
@@ -68,12 +69,12 @@ public class LiveEvent {
         this.schema = schema;
     }
 
-    public String getName() {
-        return name;
+    public String getTitle() {
+        return title;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setTitle(String title) {
+        this.title = title;
     }
 
     public EventStatus getStatus() {

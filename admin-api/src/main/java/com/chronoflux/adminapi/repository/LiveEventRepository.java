@@ -3,7 +3,8 @@ package com.chronoflux.adminapi.repository;
 import com.chronoflux.adminapi.model.LiveEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.UUID;
 
 @Repository
-public interface LiveEventRepository extends JpaRepository<LiveEvent, Long> {
+public interface LiveEventRepository extends JpaRepository<LiveEvent, UUID> {
 }
