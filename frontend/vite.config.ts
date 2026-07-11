@@ -10,4 +10,11 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      '/api/admin': 'http://localhost:8080',
+      '/api/v1': 'http://localhost:8081',
+      '/login': 'http://localhost:8080'
+    }
+  }
 })
