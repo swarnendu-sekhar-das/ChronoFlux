@@ -1,6 +1,6 @@
 package com.example.edge_api.controller;
 
-import com.example.edge_api.domain.LiveEvent;
+import com.example.edge_api.dto.LiveEventResponseDTO;
 import com.example.edge_api.service.LiveEventService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,7 +19,7 @@ public class LiveEventController {
     }
 
     @GetMapping("/active")
-    public List<LiveEvent> getActiveEvents() {
+    public List<LiveEventResponseDTO> getActiveEvents() {
         return service.getActiveEvents();
     }
 }

@@ -1,7 +1,8 @@
 package com.chronoflux.adminapi.controller;
 
-import com.chronoflux.adminapi.model.EventSchema;
-import com.chronoflux.adminapi.repository.EventSchemaRepository;
+import com.chronoflux.adminapi.dto.EventSchemaCreateDTO;
+import com.chronoflux.adminapi.dto.EventSchemaDTO;
+import com.chronoflux.adminapi.service.EventSchemaService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,26 +15,26 @@ import java.util.Optional;
 @RequestMapping("/api/admin/schemas")
 public class SchemaController {
 
-    private final EventSchemaRepository schemaRepository;
+    private final EventSchemaService schemaService;
 
-    public SchemaController(EventSchemaRepository schemaRepository) {
-        this.schemaRepository = schemaRepository;
+    public SchemaController(EventSchemaService schemaService) {
+        this.schemaService = schemaService;
     }
 
     @GetMapping
-    public ResponseEntity<List<EventSchema>> getAllSchemas() {
-        return ResponseEntity.ok(schemaRepository.findAll());
+    public ResponseEntity<List<EventSchemaDTO>> getAllSchemas() {
+        return ResponseEntity.ok(schemaService.getAllSchemas());
     }
 
     @PostMapping
-    public ResponseEntity<EventSchema> createSchema(@RequestBody EventSchema schema) {
-        EventSchema savedSchema = schemaRepository.save(schema);
+    public ResponseEntity<EventSchemaDTO> createSchema(@RequestBody EventSchemaCreateDTO schema) {
+        EventSchemaDTO savedSchema = schemaService.createSchema(schema);
         return new ResponseEntity<>(savedSchema, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventSchema> getSchemaById(@PathVariable UUID id) {
-        Optional<EventSchema> schema = schemaRepository.findById(id);
+    public ResponseEntity<EventSchemaDTO> getSchemaById(@PathVariable UUID id) {
+        Optional<EventSchemaDTO> schema = schemaService.getSchemaById(id);
         return schema.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

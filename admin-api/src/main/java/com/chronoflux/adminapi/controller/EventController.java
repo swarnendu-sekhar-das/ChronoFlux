@@ -1,7 +1,9 @@
 package com.chronoflux.adminapi.controller;
 
-import com.chronoflux.adminapi.model.LiveEvent;
-import com.chronoflux.adminapi.repository.LiveEventRepository;
+import com.chronoflux.adminapi.dto.LiveEventCreateDTO;
+import com.chronoflux.adminapi.dto.LiveEventDTO;
+import com.chronoflux.adminapi.dto.LiveEventUpdateDTO;
+import com.chronoflux.adminapi.service.LiveEventService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,55 +16,42 @@ import java.util.Optional;
 @RequestMapping("/api/admin/events")
 public class EventController {
 
-    private final LiveEventRepository eventRepository;
+    private final LiveEventService eventService;
 
-    public EventController(LiveEventRepository eventRepository) {
-        this.eventRepository = eventRepository;
+    public EventController(LiveEventService eventService) {
+        this.eventService = eventService;
     }
 
     @GetMapping
-    public ResponseEntity<List<LiveEvent>> getAllEvents() {
-        return ResponseEntity.ok(eventRepository.findAll());
+    public ResponseEntity<List<LiveEventDTO>> getAllEvents() {
+        return ResponseEntity.ok(eventService.getAllEvents());
     }
 
     @PostMapping
-    public ResponseEntity<LiveEvent> createEvent(@RequestBody LiveEvent event) {
-        LiveEvent savedEvent = eventRepository.save(event);
+    public ResponseEntity<LiveEventDTO> createEvent(@RequestBody LiveEventCreateDTO event) {
+        LiveEventDTO savedEvent = eventService.createEvent(event);
         return new ResponseEntity<>(savedEvent, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<LiveEvent> getEventById(@PathVariable UUID id) {
-        Optional<LiveEvent> event = eventRepository.findById(id);
+    public ResponseEntity<LiveEventDTO> getEventById(@PathVariable UUID id) {
+        Optional<LiveEventDTO> event = eventService.getEventById(id);
         return event.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<LiveEvent> updateEvent(@PathVariable UUID id, @RequestBody LiveEvent eventDetails) {
-        Optional<LiveEvent> eventOptional = eventRepository.findById(id);
-
-        if (eventOptional.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        LiveEvent event = eventOptional.get();
-        event.setTitle(eventDetails.getTitle());
-        event.setStatus(eventDetails.getStatus());
-        event.setPayload(eventDetails.getPayload());
-        event.setActiveFrom(eventDetails.getActiveFrom());
-        event.setActiveUntil(eventDetails.getActiveUntil());
-        
-        LiveEvent updatedEvent = eventRepository.save(event);
-        return ResponseEntity.ok(updatedEvent);
+    public ResponseEntity<LiveEventDTO> updateEvent(@PathVariable UUID id, @RequestBody LiveEventUpdateDTO eventDetails) {
+        Optional<LiveEventDTO> updatedEvent = eventService.updateEvent(id, eventDetails);
+        return updatedEvent.map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
-        if (!eventRepository.existsById(id)) {
+        if (!eventService.deleteEvent(id)) {
             return ResponseEntity.notFound().build();
         }
-        eventRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }
