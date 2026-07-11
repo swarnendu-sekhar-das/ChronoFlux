@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { getSchemas } from '../services/api';
 
 export default function Schemas() {
@@ -14,9 +15,12 @@ export default function Schemas() {
           <h2 className="text-2xl font-bold tracking-tight">Event Schemas</h2>
           <p className="text-slate-400">Manage your dynamic event definitions.</p>
         </div>
-        <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+        <Link 
+          to="/schemas/new" 
+          className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+        >
           Create Schema
-        </button>
+        </Link>
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">

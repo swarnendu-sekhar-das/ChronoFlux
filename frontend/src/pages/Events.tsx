@@ -1,0 +1,74 @@
+import { useQuery } from '@tanstack/react-query';
+import { getEvents } from '../services/api';
+
+const getStatusColor = (status: string) => {
+  switch (status.toUpperCase()) {
+    case 'ACTIVE': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+    case 'SCHEDULED': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+    case 'DRAFT': return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+    case 'EXPIRED': return 'bg-red-500/10 text-red-400 border-red-500/20';
+    default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
+  }
+};
+
+export default function Events() {
+  const { data: events, isLoading, error } = useQuery({
+    queryKey: ['events'],
+    queryFn: getEvents,
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Live Events</h2>
+          <p className="text-slate-400">Monitor and manage all scheduled and active events.</p>
+        </div>
+        <button className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+          Create Event
+        </button>
+      </div>
+
+      <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
+        {isLoading ? (
+          <div className="p-8 text-center text-slate-400">Loading events...</div>
+        ) : error ? (
+          <div className="p-8 text-center text-red-400">Failed to load events. Is the backend running?</div>
+        ) : !events || events.length === 0 ? (
+          <div className="p-8 text-center text-slate-400">No events found.</div>
+        ) : (
+          <table className="w-full text-left text-sm text-slate-300">
+            <thead className="bg-slate-950/50 text-xs uppercase text-slate-500 border-b border-slate-800">
+              <tr>
+                <th className="px-6 py-4 font-medium">Event ID</th>
+                <th className="px-6 py-4 font-medium">Schema</th>
+                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium">Active From</th>
+                <th className="px-6 py-4 font-medium">Active Until</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/50">
+              {events.map((event) => (
+                <tr key={event.id} className="hover:bg-slate-800/50 transition-colors">
+                  <td className="px-6 py-4 font-mono text-xs text-slate-400">{event.id}</td>
+                  <td className="px-6 py-4 font-medium text-slate-200">{event.schemaName || event.schemaId}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(event.status)}`}>
+                      {event.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-slate-400">
+                    {event.activeFrom ? new Date(event.activeFrom).toLocaleString() : '-'}
+                  </td>
+                  <td className="px-6 py-4 text-slate-400">
+                    {event.activeUntil ? new Date(event.activeUntil).toLocaleString() : '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
