@@ -5,6 +5,7 @@ import com.example.webhook_worker.service.WebhookDeliveryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import com.example.webhook_worker.dto.LiveEventActivatedEvent;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,8 +20,8 @@ public class WebhookEventConsumer {
     }
 
     @RabbitListener(queues = RabbitMQConfig.QUEUE_NAME)
-    public void consumeEvent(String message) {
-        logger.info("Received event from RabbitMQ: {}", message);
-        deliveryService.processEvent(message);
+    public void consumeEvent(LiveEventActivatedEvent event) {
+        logger.info("Received event from RabbitMQ for Event ID: {}", event.getEventId());
+        deliveryService.processEvent(event);
     }
 }

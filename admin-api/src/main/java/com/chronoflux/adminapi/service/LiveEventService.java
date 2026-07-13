@@ -18,10 +18,16 @@ public class LiveEventService {
 
     private final LiveEventRepository eventRepository;
     private final LiveEventMapper eventMapper;
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
-    public LiveEventService(LiveEventRepository eventRepository, LiveEventMapper eventMapper) {
+    public LiveEventService(LiveEventRepository eventRepository, LiveEventMapper eventMapper, org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
         this.eventRepository = eventRepository;
         this.eventMapper = eventMapper;
+        this.redisTemplate = redisTemplate;
+    }
+
+    private void invalidateCache() {
+        redisTemplate.delete("activeEvents::all");
     }
 
     public List<LiveEventDTO> getAllEvents() {
@@ -32,6 +38,7 @@ public class LiveEventService {
     public LiveEventDTO createEvent(LiveEventCreateDTO createDTO) {
         LiveEvent event = eventMapper.toEntity(createDTO);
         LiveEvent savedEvent = eventRepository.save(event);
+        invalidateCache();
         return eventMapper.toDTO(savedEvent);
     }
 
@@ -49,6 +56,7 @@ public class LiveEventService {
             event.setActiveUntil(updateDTO.getActiveUntil());
             
             LiveEvent updatedEvent = eventRepository.save(event);
+            invalidateCache();
             return eventMapper.toDTO(updatedEvent);
         });
     }
@@ -59,6 +67,7 @@ public class LiveEventService {
             return false;
         }
         eventRepository.deleteById(id);
+        invalidateCache();
         return true;
     }
 }

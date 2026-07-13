@@ -13,4 +13,7 @@ public interface LiveEventRepository extends JpaRepository<LiveEvent, UUID> {
     
     @Query("SELECT e FROM LiveEvent e WHERE e.status = :status AND e.activeFrom <= :now")
     List<LiveEvent> findEventsToActivate(@Param("status") String status, @Param("now") ZonedDateTime now);
+
+    @Query("SELECT e FROM LiveEvent e WHERE e.status = :status AND e.activeUntil <= :now")
+    List<LiveEvent> findEventsToExpire(@Param("status") String status, @Param("now") ZonedDateTime now);
 }
