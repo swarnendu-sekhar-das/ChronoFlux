@@ -21,6 +21,7 @@
         <module>edge-api</module>
         <module>scheduler-worker</module>
         <module>webhook-worker</module>
+        <module>mock-game-server</module>
     </modules>
 
     <properties>
