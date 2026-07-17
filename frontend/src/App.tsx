@@ -6,6 +6,7 @@ import CreateSchema from './pages/CreateSchema';
 import Events from './pages/Events';
 import CreateEvent from './pages/CreateEvent';
 import EventDetail from './pages/EventDetail';
+import Webhooks from './pages/Webhooks';
 import Placeholder from './pages/Placeholder';
 
 const queryClient = new QueryClient();
@@ -21,7 +22,7 @@ function App() {
             <Route path="events" element={<Events />} />
             <Route path="events/new" element={<CreateEvent />} />
             <Route path="events/:id" element={<EventDetail />} />
-            <Route path="webhooks" element={<Placeholder title="Webhooks" />} />
+            <Route path="webhooks" element={<Webhooks />} />
             <Route path="settings" element={<Placeholder title="Settings" />} />
           </Route>
         </Routes>
