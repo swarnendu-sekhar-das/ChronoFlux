@@ -28,6 +28,8 @@ export interface Event {
   id: string;
   schemaId: string;
   schemaName?: string;
+  title: string;
+  payload: any;
   status: string;
   activeFrom?: string;
   activeUntil?: string;
@@ -36,5 +38,15 @@ export interface Event {
 
 export const getEvents = async (): Promise<Event[]> => {
   const response = await api.get('/api/admin/events');
+  return response.data;
+};
+
+export const getEventById = async (id: string): Promise<Event> => {
+  const response = await api.get(`/api/admin/events/${id}`);
+  return response.data;
+};
+
+export const createEvent = async (data: any): Promise<Event> => {
+  const response = await api.post('/api/admin/events', data);
   return response.data;
 };
