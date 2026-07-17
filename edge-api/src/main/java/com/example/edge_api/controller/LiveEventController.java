@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/events")
+@RequestMapping("/events")
 public class LiveEventController {
 
     private final LiveEventService service;

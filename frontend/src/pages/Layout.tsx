@@ -4,7 +4,7 @@ import { Database, Calendar, Webhook, Settings } from 'lucide-react';
 export default function Layout() {
   const handleLogin = () => {
     // Redirects to backend OAuth2 flow
-    window.location.href = 'http://localhost:8080/api/admin/auth/login';
+    window.location.href = '/api/admin/auth/login';
   };
 
   return (

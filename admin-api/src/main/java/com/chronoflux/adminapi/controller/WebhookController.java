@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/admin/webhooks")
+@RequestMapping("/webhooks")
 @CrossOrigin("*") // We'll leave this for now to match the existing anti-pattern noted in the study guide, though in real prod this is disabled.
 public class WebhookController {
 

@@ -12,7 +12,7 @@ import java.util.UUID;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/admin/schemas")
+@RequestMapping("/schemas")
 public class SchemaController {
 
     private final EventSchemaService schemaService;

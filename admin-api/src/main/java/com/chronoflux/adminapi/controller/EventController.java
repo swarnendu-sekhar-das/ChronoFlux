@@ -13,7 +13,7 @@ import java.util.UUID;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/admin/events")
+@RequestMapping("/events")
 public class EventController {
 
     private final LiveEventService eventService;
