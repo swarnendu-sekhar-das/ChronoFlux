@@ -1,7 +1,14 @@
 import type { UseFormRegister, FieldErrors } from 'react-hook-form';
 
+// Extracts the type string from either flat ("string") or nested ({ type: "string", required: true }) formats
+const extractFieldType = (value: any): string => {
+  if (typeof value === 'string') return value.toLowerCase();
+  if (typeof value === 'object' && value !== null && value.type) return String(value.type).toLowerCase();
+  return 'any';
+};
+
 interface DynamicFormEngineProps {
-  schemaDefinition: Record<string, string>;
+  schemaDefinition: Record<string, any>;
   register: UseFormRegister<any>;
   errors: FieldErrors<any>;
 }
@@ -16,15 +23,16 @@ export default function DynamicFormEngine({ schemaDefinition, register, errors }
 
   return (
     <div className="space-y-4">
-      {Object.entries(schemaDefinition).map(([key, type]) => {
+      {Object.entries(schemaDefinition).map(([key, value]) => {
+        const fieldType = extractFieldType(value);
         // Build the correct input based on the expected type
         return (
           <div key={key}>
             <label className="block text-sm font-medium text-slate-300 mb-1 capitalize">
-              {key} <span className="text-slate-500 text-xs ml-1">({type})</span>
+              {key} <span className="text-slate-500 text-xs ml-1">({fieldType})</span>
             </label>
             
-            {String(type).toLowerCase() === 'boolean' ? (
+            {fieldType === 'boolean' ? (
               <div className="flex items-center mt-2 h-10">
                 <input
                   type="checkbox"
@@ -33,7 +41,7 @@ export default function DynamicFormEngine({ schemaDefinition, register, errors }
                 />
                 <span className="ml-2 text-sm text-slate-400">Enabled</span>
               </div>
-            ) : String(type).toLowerCase() === 'number' ? (
+            ) : fieldType === 'number' ? (
               <input
                 type="number"
                 step="any"

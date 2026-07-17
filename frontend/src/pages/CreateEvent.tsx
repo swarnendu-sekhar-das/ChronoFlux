@@ -7,16 +7,26 @@ import * as z from 'zod';
 import { getSchemas, createEvent } from '../services/api';
 import DynamicFormEngine from '../components/DynamicFormEngine';
 
+// Extracts the type string from either flat ("string") or nested ({ type: "string", required: true }) formats
+const extractFieldType = (value: any): string => {
+  if (typeof value === 'string') return value.toLowerCase();
+  if (typeof value === 'object' && value !== null && value.type) return String(value.type).toLowerCase();
+  return 'any';
+};
+
 // Build a dynamic Zod schema based on the selected EventSchema's JSON definition
-const buildZodSchema = (schemaDefinition: Record<string, string> | null) => {
+const buildZodSchema = (schemaDefinition: Record<string, any> | null) => {
   if (!schemaDefinition) return z.object({});
 
   const shape: Record<string, any> = {};
   
-  Object.entries(schemaDefinition).forEach(([key, type]) => {
-    switch (String(type).toLowerCase()) {
+  Object.entries(schemaDefinition).forEach(([key, value]) => {
+    const fieldType = extractFieldType(value);
+    const isRequired = typeof value === 'object' && value?.required === true;
+
+    switch (fieldType) {
       case 'string':
-        shape[key] = z.string().min(1, 'Required');
+        shape[key] = isRequired ? z.string().min(1, 'Required') : z.string().optional().or(z.literal(''));
         break;
       case 'number':
         shape[key] = z.number();
