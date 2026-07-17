@@ -9,6 +9,9 @@ project_analysis.md
 tech_stack_analysis.md
 phase1/ 
 phase2/
+phase3/
+logs
+e2e_test.sh
 
 # Environment
 .env
@@ -37,3 +40,4 @@ target/
 
 # VS Code
 .vscode/
+phase3/
