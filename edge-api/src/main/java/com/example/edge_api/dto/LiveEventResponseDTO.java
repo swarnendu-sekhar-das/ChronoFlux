@@ -7,6 +7,7 @@ public class LiveEventResponseDTO {
     private String title;
     private String status;
     private String payload;
+    private String createdAt;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -16,4 +17,6 @@ public class LiveEventResponseDTO {
     public void setStatus(String status) { this.status = status; }
     public String getPayload() { return payload; }
     public void setPayload(String payload) { this.payload = payload; }
+    public String getCreatedAt() { return createdAt; }
+    public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
 }

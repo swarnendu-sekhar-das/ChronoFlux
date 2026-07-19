@@ -21,8 +21,12 @@ public class LiveEvent {
     @JdbcTypeCode(SqlTypes.JSON)
     private String payload;
 
+    @jakarta.persistence.Column(name = "created_at")
+    private java.time.Instant createdAt;
+
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public String getStatus() { return status; }
     public String getPayload() { return payload; }
+    public java.time.Instant getCreatedAt() { return createdAt; }
 }

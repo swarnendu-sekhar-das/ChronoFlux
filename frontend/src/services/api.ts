@@ -6,6 +6,18 @@ export const api = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export interface Schema {
   id: string;
   name: string;
@@ -92,5 +104,17 @@ export const toggleWebhook = async (id: string, isActive: boolean): Promise<Webh
 
 export const getWebhookDeliveries = async (): Promise<WebhookDelivery[]> => {
   const response = await api.get('/api/admin/webhooks/deliveries');
+  return response.data;
+};
+
+export interface SystemStatus {
+  activeEvents: number;
+  pendingWebhooks: number;
+  totalUsers: number;
+  status: string;
+}
+
+export const getSystemStatus = async (): Promise<SystemStatus> => {
+  const response = await api.get('/api/admin/system/status');
   return response.data;
 };

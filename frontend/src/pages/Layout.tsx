@@ -1,19 +1,8 @@
 import { Link, Outlet } from 'react-router-dom';
-import { Database, Calendar, Webhook, Settings, Gamepad2 } from 'lucide-react';
-import { GoogleLogin } from '@react-oauth/google';
+import { Database, Calendar, Webhook, Settings, Gamepad2, Activity } from 'lucide-react';
 import { api } from '../services/api';
 
 export default function Layout() {
-  const handleSuccess = async (credentialResponse: any) => {
-    try {
-      await api.post('/api/admin/auth/callback', {
-        idToken: credentialResponse.credential
-      });
-      window.location.reload();
-    } catch (err) {
-      console.error('Login failed', err);
-    }
-  };
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 font-sans">
@@ -25,6 +14,10 @@ export default function Layout() {
         </div>
         <nav className="flex-1 p-4 space-y-2">
           <Link to="/" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
+            <Activity size={20} />
+            Dashboard
+          </Link>
+          <Link to="/schemas" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
             <Database size={20} />
             Schemas
           </Link>
@@ -52,13 +45,19 @@ export default function Layout() {
         {/* Header */}
         <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-8">
           <h2 className="text-lg font-semibold text-slate-200">Admin Control Room</h2>
-          <GoogleLogin
-            onSuccess={handleSuccess}
-            onError={() => console.error('Login Failed')}
-            useOneTap
-            shape="rectangular"
-            theme="filled_blue"
-          />
+          <button 
+            onClick={async () => {
+              try {
+                await api.post('/api/admin/auth/signout');
+                window.location.href = '/login';
+              } catch (e) {
+                console.error(e);
+              }
+            }}
+            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-lg transition-colors"
+          >
+            Sign Out
+          </button>
         </header>
 
         {/* Page Content */}

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getEvents } from '../services/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const getStatusColor = (status: string) => {
   switch (status.toUpperCase()) {
@@ -32,7 +33,12 @@ export default function Events() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-slate-400">Loading events...</div>
+          <div className="p-6 space-y-4">
+            <Skeleton className="h-8 w-full bg-slate-800" />
+            <Skeleton className="h-12 w-full bg-slate-800" />
+            <Skeleton className="h-12 w-full bg-slate-800" />
+            <Skeleton className="h-12 w-full bg-slate-800" />
+          </div>
         ) : error ? (
           <div className="p-8 text-center text-red-400">Failed to load events. Is the backend running?</div>
         ) : !events || events.length === 0 ? (

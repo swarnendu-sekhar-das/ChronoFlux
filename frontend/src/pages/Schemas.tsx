@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getSchemas } from '../services/api';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Schemas() {
   const { data: schemas, isLoading, error } = useQuery({
@@ -25,7 +26,12 @@ export default function Schemas() {
 
       <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-slate-400">Loading schemas...</div>
+          <div className="p-6 space-y-4">
+            <Skeleton className="h-8 w-full bg-slate-800" />
+            <Skeleton className="h-12 w-full bg-slate-800" />
+            <Skeleton className="h-12 w-full bg-slate-800" />
+            <Skeleton className="h-12 w-full bg-slate-800" />
+          </div>
         ) : error ? (
           <div className="p-8 text-center text-red-400">Failed to load schemas. Is the backend running?</div>
         ) : !schemas || schemas.length === 0 ? (

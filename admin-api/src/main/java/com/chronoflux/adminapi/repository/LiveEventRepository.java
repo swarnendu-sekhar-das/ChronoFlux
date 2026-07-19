@@ -7,4 +7,5 @@ import java.util.UUID;
 
 @Repository
 public interface LiveEventRepository extends JpaRepository<LiveEvent, UUID> {
+    long countByStatus(com.chronoflux.adminapi.model.EventStatus status);
 }

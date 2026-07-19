@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createSchema } from '../services/api';
+import { useToast } from '@/hooks/use-toast';
 
 type SchemaFormData = {
   name: string;
@@ -11,6 +12,7 @@ type SchemaFormData = {
 
 export default function CreateSchema() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
   const { register, handleSubmit, formState: { errors, isSubmitting }, setError } = useForm<SchemaFormData>();
 
@@ -18,8 +20,19 @@ export default function CreateSchema() {
     mutationFn: createSchema,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['schemas'] });
-      navigate('/');
+      toast({
+        title: "Schema Created",
+        description: "Your new schema was successfully saved.",
+      });
+      navigate('/schemas');
     },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create schema.",
+      });
+    }
   });
 
   const onSubmit = (data: SchemaFormData) => {

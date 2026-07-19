@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { getSchemas, createEvent } from '../services/api';
 import DynamicFormEngine from '../components/DynamicFormEngine';
+import { useToast } from '@/hooks/use-toast';
 
 // Extracts the type string from either flat ("string") or nested ({ type: "string", required: true }) formats
 const extractFieldType = (value: any): string => {
@@ -91,12 +92,25 @@ export default function CreateEvent() {
     });
   };
 
+  const { toast } = useToast();
+
   const mutation = useMutation({
     mutationFn: createEvent,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
+      toast({
+        title: "Event Created",
+        description: "Your live event has been saved and scheduled.",
+      });
       navigate('/events');
     },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create event.",
+      });
+    }
   });
 
   const onSubmit = (data: FormValues) => {

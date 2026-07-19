@@ -660,6 +660,135 @@ Then in DevTools: `GET /api/admin/schemas` now shows `Cookie: AUTH_TOKEN=eyJhbG.
 
 ---
 
+### Debugging Session #6: The Concurrent Merge Conflict (Git Workflow)
+
+**Symptom:** After completing the OAuth feature locally, running `git push origin main` was rejected with the error: `Your branch and 'origin/main' have diverged`. When attempting to `git pull origin main --no-rebase`, it resulted in a `CONFLICT (content): Merge conflict in frontend/src/pages/Layout.tsx`.
+
+**Root Cause:** This is a classic concurrent development scenario. While Person A was developing the OAuth feature on the `feature/fix-oauth` branch, Person B pushed new commits (the Game Client Simulator UI polish) directly to the remote `main` branch. 
+When Person A merged their feature into their local `main`, their local `main` was unaware of Person B's new commits. Git correctly rejected the push because it would have overwritten Person B's work.
+The subsequent `pull` caused a merge conflict in `Layout.tsx` because both Person A and Person B had modified the exact same block of `import` statements at the top of the file (Person A added `GoogleLogin`, Person B added `Gamepad2`).
+
+**Fix:**
+1. Ran `git pull origin main --no-rebase` to fetch Person B's commits and attempt a merge.
+2. Opened `frontend/src/pages/Layout.tsx` and manually resolved the conflict markers (`<<<<<<< HEAD`, `=======`, `>>>>>>>`) by combining both imports into a single cohesive block.
+3. Ran `git add frontend/src/pages/Layout.tsx` to mark the conflict as resolved.
+4. Ran `git commit -m "Merge branch 'feature/fix-oauth' into main, resolve import conflicts in Layout.tsx"` to finalize the merge.
+5. Ran `git push origin main` to synchronize the fully integrated codebase.
+
+**Interview Angle:** "Merge conflicts are not errors; they are a normal part of asynchronous team development. This scenario demonstrates why frequent pulling and feature branching is essential. When a conflict occurs, the most important thing is not just making the red lines go away, but conceptually understanding *why* the other engineer touched that file so you don't accidentally delete their feature."
+
+---
+
+### Debugging Session #7: The Infinite Login Redirect Loop
+
+**Symptom:** After successfully logging in via Google One Tap, the frontend got stuck in an infinite loop, constantly redirecting between the Dashboard and the `/login` page.
+
+**Root Cause:** The `Dashboard` makes three concurrent API calls to `/api/admin/system/status`, `/api/admin/webhooks`, and `/api/admin/events`. The backend's `JwtAuthenticationFilter` validates the JWT for each request by calling `TokenService.verifyToken()`. However, `TokenService` was creating a brand new `GoogleIdTokenVerifier` instance for *every single request*. This triggered concurrent HTTP GET requests to Google's public certificates endpoint without caching. Google rate-limited or dropped these concurrent requests, causing `verifyToken` to throw an exception and return `null`. The filter then returned `401 Unauthorized`, which the frontend's Axios interceptor caught and redirected the user to `/login`. Google One Tap then immediately re-authenticated the user and navigated back to the Dashboard, restarting the cycle.
+
+**Fix:** Modified `TokenService.java` to instantiate and cache the `GoogleIdTokenVerifier` once as a Singleton using `@PostConstruct`. This caches Google's public keys in memory and avoids network calls on every API request.
+
+**Interview Angle:** "This demonstrates the danger of hidden network calls inside authentication filters. A single page load can trigger multiple concurrent API requests. If your auth filter makes synchronous external HTTP calls without caching, you will quickly exhaust connection pools or hit third-party rate limits, leading to cascading failures."
+
+---
+
+### Debugging Session #8: The Docker DNS SERVFAIL Crash
+
+**Symptom:** The `admin-api` container crashed during startup and failed its health check. The logs showed `java.net.UnknownHostException: Failed to resolve 'redis' [A(1)]` and `io.netty.resolver.dns.DnsErrorCauseException: Query failed with SERVFAIL`.
+
+**Root Cause:** The `admin-api` container requires a connection to Redis to configure the `RedisReactiveHealthIndicator` (via `spring-boot-starter-data-redis`). However, `redis` was missing from the `depends_on` block of `admin-api` in `docker-compose.yml`. This caused `admin-api` to start up and attempt to resolve the `redis` hostname before Docker's internal DNS had registered it or before the `redis` container was healthy.
+
+**Fix:** Added `redis: condition: service_healthy` to the `depends_on` configuration for `admin-api` in `docker-compose.yml` to enforce the proper container startup order.
+
+**Interview Angle:** "Docker Compose `depends_on` only dictates start order, not readiness, unless you specifically use `condition: service_healthy`. When microservices boot up faster than the infrastructure they depend on, you'll encounter transient DNS or connection refused errors. It's crucial to explicitly map out startup dependencies."
+
+---
+
+### Debugging Session #9: The TypeScript VerbatimModuleSyntax Error
+
+**Symptom:** During the frontend polish phase, adding the `ErrorBoundary` component caused a TypeScript compilation error: `TS1361: 'React' cannot be used as a value because it was imported using 'import type'`.
+
+**Root Cause:** The project uses `verbatimModuleSyntax: true` in `tsconfig.json`, which strictly enforces the separation of type imports and value imports to optimize bundling. React component class definitions (e.g., `class ErrorBoundary extends React.Component`) require `React` to be imported as a runtime *value*, not just a compile-time *type*, because the class must extend the actual `React.Component` object at runtime in the compiled JavaScript.
+
+**Fix:** Changed the import statement from `import type React from 'react'` to `import React, { Component, ErrorInfo, ReactNode } from 'react'` to correctly import the runtime values required for the class definition.
+
+**Interview Angle:** "Modern TypeScript configurations like `verbatimModuleSyntax` force developers to be intentional about what is a type (erased at compile time) versus a value (emitted in the JS bundle). It's a great tool for bundle optimization, but it requires a solid understanding of how TypeScript classes compile down to JavaScript prototype chains."
+
+---
+
+### Debugging Session #10: The Phantom 403 Login Loop (Context-Path Bug #2)
+
+**Symptom:** After successfully fixing all previous authentication bugs, the login loop persisted. Google login succeeded (backend returned `200 OK`, cookie was set), the frontend navigated to the Dashboard, but the user was immediately redirected back to `/login`. This loop continued indefinitely even after clearing cookies, using incognito mode, and fully rebuilding the backend.
+
+**Step 1 — Confirm authentication works.** Test the backend endpoints directly:
+```bash
+# Auth callback is reachable and correctly rejects fake tokens
+curl -s -w "%{http_code}" -X POST http://localhost/api/admin/auth/callback \
+  -H "Content-Type: application/json" -d '{"idToken":"fake"}'
+# Result: 401 → Endpoint works, token is invalid (expected)
+
+# Unauthenticated requests are correctly denied
+curl -s -w "%{http_code}" http://localhost/api/admin/schemas
+# Result: 403 → Security is enforced (expected)
+```
+
+**Step 2 — Check the admin-api logs.** Filtered for errors:
+```bash
+sudo docker logs chronoflux-admin-api-1 --tail 200 2>&1 | grep -A 5 -E "(ERROR|WARN|Token)"
+```
+The only error was an `IllegalArgumentException` from our own `curl` test with a `"fake"` token — no errors from actual Google logins. This confirmed the authentication pipeline itself was working correctly.
+
+**Step 3 — Shift focus: if auth works, what's causing the 403?** The Dashboard component makes two API calls on mount:
+- `GET /api/admin/system/status`
+- `GET /api/admin/webhooks/deliveries`
+
+If *either* returns 403, the Axios interceptor redirects to `/login`. Searched for the controller mappings:
+```bash
+grep -rn "@RequestMapping" admin-api/src/main/java/ --include="*Controller*"
+```
+
+**Result:**
+```
+EventController.java:    @RequestMapping("/events")        ✅ Correct (relative)
+WebhookController.java:  @RequestMapping("/webhooks")      ✅ Correct (relative)
+SchemaController.java:   @RequestMapping("/schemas")       ✅ Correct (relative)
+OAuthController.java:    @RequestMapping("/auth")          ✅ Correct (relative)
+SystemController.java:   @RequestMapping("/api/admin/system")  ❌ BUG!
+```
+
+**Step 4 — Root cause identified.** The `SystemController` was added in Phase 4 and used the FULL path `"/api/admin/system"` instead of the relative path `"/system"`. Because `application.yml` sets `server.servlet.context-path: /api/admin`, Tomcat prepends this to every controller's `@RequestMapping`. The actual URL for `SystemController` became:
+
+```
+Expected: /api/admin/system/status
+Actual:   /api/admin/api/admin/system/status  (doubled prefix!)
+```
+
+When the Dashboard called `GET /api/admin/system/status`, Spring MVC found no matching handler. Because the user was freshly authenticated (cookie was present), the `JwtAuthenticationFilter` successfully verified the token and set the `SecurityContext`. But the missing handler caused Spring to return **404 Not Found** — wait, but the interceptor only catches 401/403, not 404.
+
+**Step 5 — Deeper analysis of the loop mechanics.** The loop actually worked as follows:
+1. User navigates to `http://localhost` for the first time (no cookie yet)
+2. Dashboard fires `GET /api/admin/system/status` → no cookie → `JwtAuthenticationFilter` doesn't authenticate → Spring Security returns **403** (not 404, because the auth check happens BEFORE handler resolution)
+3. Axios interceptor catches 403 → redirects to `/login`
+4. User authenticates with Google → cookie set → `navigate('/')` → Dashboard
+5. Dashboard fires `GET /api/admin/system/status` → cookie present → filter authenticates → handler not found → **404**
+6. BUT: `GET /api/admin/webhooks/deliveries` → cookie present → filter authenticates → handler found → **200** ✅
+7. The 404 from the system status call was NOT caught by the interceptor (it only catches 401/403)
+8. So why did the loop persist? Because React Query's `refetchInterval: 5000` polled every 5 seconds, and on each poll the **Dashboard also called the system status endpoint**, which returned 404, causing the Dashboard to show broken data.
+
+The actual persistent loop happened because of a **race condition on first load**: before the cookie was set, the *simultaneous* Dashboard API calls all got 403, and the interceptor fired the redirect before the login callback could complete.
+
+**Fix:**
+```java
+// ❌ BEFORE (doubled context-path)
+@RequestMapping("/api/admin/system")
+
+// ✅ AFTER (relative to context-path, matching all other controllers)
+@RequestMapping("/system")
+```
+
+**Interview Angle:** "This was the same class of bug as Bug #1 (the Spring Security context-path 403), but it manifested completely differently. Bug #1 blocked the login endpoint itself. Bug #10 silently broke a Dashboard API endpoint, which triggered the Axios 403 interceptor and created an infinite redirect loop. The lesson is that context-path is a project-wide convention — every new controller must follow it, and a single deviation creates a cascading failure that looks like an unrelated authentication bug. The debugging key was `grep`-ing all `@RequestMapping` annotations across controllers and noticing the inconsistency."
+
+---
+
 ### Summary: The Debugging Toolkit
 
 | Tool / Technique | What It Tells You |
@@ -673,4 +802,42 @@ Then in DevTools: `GET /api/admin/schemas` now shows `Cookie: AUTH_TOKEN=eyJhbG.
 | `sudo docker logs <container>` | Shows Spring Boot stack traces and NGINX error logs |
 | `sudo docker restart <container>` | Fixes NGINX DNS cache after a backend rebuild |
 | `sudo docker exec ... psql -c "SELECT..."` | Verifies data persistence in PostgreSQL |
+
+---
+
+## 9. Strategic Decisions: Frontend Polish (Person A)
+
+During the Phase 4 polish stage, we made deliberate, strategic choices to balance "Interview ROI" (Return on Investment) against time spent building UI:
+
+1. **Prioritizing Observability over Aesthetics:**
+   - **Decision:** We completely dropped the plan to add CSS keyframe animations (like screen shakes and glowing text) to the mock Game Client Simulator.
+   - **Why:** In a Backend Engineering interview, nobody will grill you on CSS keyframes. Instead, we shifted all that effort into building an **Activity Feed** and a **System Status Dashboard**. These functional tools allow us to instantly prove to an interviewer that our distributed messaging (RabbitMQ) and Webhook retry mechanics are working in real-time without needing to hunt through raw Docker logs.
+
+2. **The Missing Login Page & UX Polish:**
+   - **Decision:** We replaced the hardcoded "loading" schemas page with a dedicated `Login.tsx` page and global Axios interceptors.
+   - **Why:** Before this fix, if an unauthenticated user visited the root URL, TanStack Query would infinitely loop trying to fetch data, returning `403 Forbidden` in the background and leaving a broken UI. By implementing a global Axios interceptor that catches 401/403s and redirects to a dedicated Login route, we demonstrate a solid understanding of how frontend clients should securely interface with authenticated backend REST APIs.
+
+---
+
+## 10. Debugging Session #11: The Phantom Sorting Bug (Missing Domain Fields)
+
+**The Symptom:**
+The frontend's Simulator UI was designed to sort live events so the newest one always flashed at the top. However, users reported that the newest events were appearing at the bottom, and the flashing animation was triggering on the oldest event instead.
+
+**The Investigation:**
+1. **Frontend Assumption:** First, we assumed the array mapping was simply missing a `.sort()`. We updated the frontend to execute: `[...activeEvents].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())`.
+2. **Silent Failure:** The sorting still failed silently. We checked the data being returned by the API using `curl -s http://localhost:8081/api/v1/events/active | jq '.'`.
+3. **The Breakthrough:** The API JSON payload completely lacked the `createdAt` field! Because the timestamp was missing, the frontend evaluated `new Date(undefined)` which resulted in `NaN` (Not-a-Number), immediately breaking the sorting logic.
+
+**The Root Cause:**
+We traced the data flow backward. The high-throughput `edge-api` was reading `LiveEvent` entities from PostgreSQL using a stripped-down domain model. To save bandwidth and memory, the Edge API's `LiveEvent` entity and its `LiveEventResponseDTO` did not map the `created_at` database column to Java fields.
+
+**The Full-Stack Fix:**
+1. **Domain Layer:** We added the `@Column(name = "created_at") private java.time.Instant createdAt;` field to the `LiveEvent` entity in the `edge-api`.
+2. **DTO Layer:** We added `createdAt` to the `LiveEventResponseDTO` and let MapStruct auto-generate the mapping.
+3. **Database Layer:** Instead of relying solely on the frontend to sort, we pushed the heavy lifting down to the database by rewriting the repository method to `findByStatusOrderByCreatedAtDesc("ACTIVE")`. This guarantees the data arrives pre-sorted.
+4. **Cache Invalidation:** Because the `edge-api` aggressively caches responses in Redis via `@Cacheable`, the old unsorted payloads were stuck in memory. We resolved this by flushing the Redis cache (`redis-cli flushall`) and restarting the container.
+
+**The Interview Angle:**
+"This bug highlights the dangers of microservice data modeling divergence. The Admin API knew about the `createdAt` timestamp, but the Edge API ignored it to save bandwidth. When the frontend suddenly needed that field for sorting, it broke silently. The best fix wasn't just adding the field to the DTO—it was pushing the sort logic down to the Database layer (`ORDER BY created_at DESC`) and recognizing that we had to flush the Redis cache layer to apply the fix across the distributed system."
 

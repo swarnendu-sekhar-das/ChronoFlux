@@ -7,6 +7,8 @@ import {
   getWebhookDeliveries, 
   getSchemas 
 } from '../services/api';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Webhooks() {
   const queryClient = useQueryClient();
@@ -30,6 +32,8 @@ export default function Webhooks() {
     refetchInterval: 5000 // Poll deliveries to see results
   });
 
+  const { toast } = useToast();
+
   const createMutation = useMutation({
     mutationFn: createWebhook,
     onSuccess: () => {
@@ -37,13 +41,28 @@ export default function Webhooks() {
       setIsModalOpen(false);
       setTargetUrl('');
       setSchemaId('');
+      toast({
+        title: "Webhook Registered",
+        description: "Your endpoint has been added.",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to register webhook.",
+      });
     }
   });
 
   const toggleMutation = useMutation({
     mutationFn: ({ id, isActive }: { id: string, isActive: boolean }) => toggleWebhook(id, isActive),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['webhooks'] });
+      toast({
+        title: variables.isActive ? "Webhook Enabled" : "Webhook Disabled",
+        description: "Endpoint status updated.",
+      });
     }
   });
 
@@ -78,7 +97,11 @@ export default function Webhooks() {
           
           <div className="p-0 overflow-auto max-h-[500px]">
             {isLoadingWebhooks ? (
-               <div className="p-6 text-slate-400">Loading webhooks...</div>
+               <div className="p-6 space-y-4">
+                 <Skeleton className="h-6 w-full bg-slate-800" />
+                 <Skeleton className="h-8 w-full bg-slate-800" />
+                 <Skeleton className="h-8 w-full bg-slate-800" />
+               </div>
             ) : webhooks?.length === 0 ? (
                <div className="p-6 text-slate-500 text-center">No webhooks registered.</div>
             ) : (
@@ -127,7 +150,11 @@ export default function Webhooks() {
           </div>
           <div className="p-0 overflow-auto max-h-[500px]">
              {isLoadingDeliveries ? (
-               <div className="p-6 text-slate-400">Loading delivery logs...</div>
+               <div className="p-6 space-y-4">
+                 <Skeleton className="h-6 w-full bg-slate-800" />
+                 <Skeleton className="h-8 w-full bg-slate-800" />
+                 <Skeleton className="h-8 w-full bg-slate-800" />
+               </div>
             ) : deliveries?.length === 0 ? (
                <div className="p-6 text-slate-500 text-center">No deliveries attempted yet.</div>
             ) : (

@@ -54,7 +54,7 @@ export default function Simulator() {
           </div>
         ) : (
           <div className="w-full max-w-4xl space-y-8 animate-in fade-in zoom-in duration-500">
-            {activeEvents.map((event, idx) => (
+            {[...activeEvents].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((event, idx) => (
               <div key={event.id} className={`bg-black/80 border border-red-500/50 rounded-xl overflow-hidden shadow-[0_0_30px_rgba(239,68,68,0.3)] backdrop-blur-sm ${idx === 0 ? 'animate-[pulse_2s_ease-in-out_infinite]' : ''}`}>
                 <div className="bg-red-950/80 border-b border-red-500/50 p-4 flex items-center justify-between">
                   <div className="flex items-center space-x-3">

@@ -11,6 +11,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@radix-ui/react-alert-dialog": "^1.1.19",
+    "@radix-ui/react-slot": "^1.3.0",
+    "@radix-ui/react-toast": "^1.2.19",
     "@react-oauth/google": "^0.13.5",
     "@tanstack/react-query": "^5.101.2",
     "axios": "^1.18.1",
