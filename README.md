@@ -9,25 +9,25 @@ ChronoFlux employs a modern, distributed microservice architecture to handle hig
 ```mermaid
 graph TD
     %% Clients
-    Admin[Admin/Dev UI\n(React/Vite)]
-    GameClients[Game Clients\n(Unity/Unreal/Simulator)]
+    Admin["Admin/Dev UI\n(React/Vite)"]
+    GameClients["Game Clients\n(Unity/Unreal/Simulator)"]
     
     %% Ingress
-    NGINX[NGINX Reverse Proxy\nAPI Gateway]
+    NGINX["NGINX Reverse Proxy\nAPI Gateway"]
     
     %% Services
-    AdminAPI[Admin API\n(Spring Boot)]
-    EdgeAPI[Edge API\n(Spring Boot)]
-    Scheduler[Scheduler Worker\n(Quartz + ShedLock)]
-    Webhook[Webhook Worker\n(Spring Boot + RabbitMQ)]
+    AdminAPI["Admin API\n(Spring Boot)"]
+    EdgeAPI["Edge API\n(Spring Boot)"]
+    Scheduler["Scheduler Worker\n(Quartz + ShedLock)"]
+    Webhook["Webhook Worker\n(Spring Boot + RabbitMQ)"]
     
     %% Data Stores
-    PostgreSQL[(PostgreSQL\nPrimary DB)]
-    Redis[(Redis\nCache)]
-    RabbitMQ[[RabbitMQ\nMessage Broker]]
+    PostgreSQL[("PostgreSQL\nPrimary DB")]
+    Redis[("Redis\nCache")]
+    RabbitMQ[["RabbitMQ\nMessage Broker"]]
     
     %% External
-    ExtServer[Mock Game Server\n/ External Webhooks]
+    ExtServer["Mock Game Server\n/ External Webhooks"]
 
     %% Connections
     Admin -->|/api/admin| NGINX
