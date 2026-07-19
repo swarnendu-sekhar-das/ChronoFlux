@@ -1,6 +1,7 @@
 package com.chronoflux.adminapi.controller;
 
 import com.chronoflux.adminapi.service.TokenService;
+import com.chronoflux.adminapi.service.UserService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,9 +15,11 @@ import java.util.Map;
 public class OAuthController {
 
     private final TokenService tokenService;
+    private final UserService userService;
 
-    public OAuthController(TokenService tokenService) {
+    public OAuthController(TokenService tokenService, UserService userService) {
         this.tokenService = tokenService;
+        this.userService = userService;
     }
 
     @PostMapping("/callback")
@@ -26,10 +29,13 @@ public class OAuthController {
         GoogleIdToken.Payload tokenPayload = tokenService.verifyToken(idTokenString);
         
         if (tokenPayload != null) {
-            // Valid token, we create a secure HTTP-only cookie
+            // Valid token, upsert user in DB
+            userService.upsertUser(tokenPayload);
+
+            // Create a HTTP-only cookie (Secure=false for local HTTP development)
             Cookie cookie = new Cookie("AUTH_TOKEN", idTokenString);
             cookie.setHttpOnly(true);
-            cookie.setSecure(true);
+            cookie.setSecure(false); // Set to true in production with HTTPS
             cookie.setPath("/");
             cookie.setMaxAge(3600); // 1 hour
             
@@ -45,7 +51,7 @@ public class OAuthController {
     public ResponseEntity<?> signout(HttpServletResponse response) {
         Cookie cookie = new Cookie("AUTH_TOKEN", null);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);
+        cookie.setSecure(false); // Must match the original cookie's Secure flag
         cookie.setPath("/");
         cookie.setMaxAge(0);
         

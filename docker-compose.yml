@@ -47,6 +47,7 @@ services:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_DATA_REDIS_HOST=redis
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
     ports:
       - "8080:8080"
     healthcheck:
@@ -125,6 +126,8 @@ services:
     build:
       context: frontend
       dockerfile: Dockerfile
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
     ports:
       - "80:80"
     depends_on:
