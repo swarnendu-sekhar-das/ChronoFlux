@@ -28,7 +28,17 @@ export default function EventDetail() {
     },
   });
 
-  if (isLoading) return <div className="p-8 text-slate-400">Loading Event...</div>;
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-pulse">
+        <div className="h-10 bg-slate-800 rounded w-1/3"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="col-span-1 h-64 bg-slate-900 border border-slate-800 rounded-lg"></div>
+          <div className="col-span-1 md:col-span-2 h-64 bg-slate-950 border border-slate-800 rounded-lg"></div>
+        </div>
+      </div>
+    );
+  }
   if (error || !event) return <div className="p-8 text-red-400">Error loading event details.</div>;
 
   return (

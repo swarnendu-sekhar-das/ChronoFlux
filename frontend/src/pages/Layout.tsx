@@ -1,5 +1,5 @@
 import { Link, Outlet } from 'react-router-dom';
-import { Database, Calendar, Webhook, Settings } from 'lucide-react';
+import { Database, Calendar, Webhook, Settings, Gamepad2 } from 'lucide-react';
 
 export default function Layout() {
   const handleLogin = () => {
@@ -27,6 +27,10 @@ export default function Layout() {
           <Link to="/webhooks" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
             <Webhook size={20} />
             Webhooks
+          </Link>
+          <Link to="/simulator" className="flex items-center gap-3 px-4 py-3 text-emerald-400 hover:bg-slate-800 hover:text-emerald-300 rounded-lg transition-colors bg-emerald-950/20">
+            <Gamepad2 size={20} />
+            Simulator UI
           </Link>
           <Link to="/settings" className="flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors">
             <Settings size={20} />
