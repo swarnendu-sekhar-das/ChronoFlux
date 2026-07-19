@@ -8,6 +8,7 @@ import CreateEvent from './pages/CreateEvent';
 import EventDetail from './pages/EventDetail';
 import Webhooks from './pages/Webhooks';
 import Placeholder from './pages/Placeholder';
+import Simulator from './pages/Simulator';
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ function App() {
             <Route path="events/new" element={<CreateEvent />} />
             <Route path="events/:id" element={<EventDetail />} />
             <Route path="webhooks" element={<Webhooks />} />
+            <Route path="simulator" element={<Simulator />} />
             <Route path="settings" element={<Placeholder title="Settings" />} />
           </Route>
         </Routes>

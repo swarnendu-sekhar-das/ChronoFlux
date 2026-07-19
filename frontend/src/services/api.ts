@@ -46,6 +46,11 @@ export const getEventById = async (id: string): Promise<Event> => {
   return response.data;
 };
 
+export const getActiveEvents = async (): Promise<Event[]> => {
+  const response = await api.get('/api/v1/events/active');
+  return response.data;
+};
+
 export const createEvent = async (data: any): Promise<Event> => {
   const response = await api.post('/api/admin/events', data);
   return response.data;
