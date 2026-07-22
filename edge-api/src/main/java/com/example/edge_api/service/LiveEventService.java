@@ -19,7 +19,7 @@ public class LiveEventService {
         this.mapper = mapper;
     }
 
-    @Cacheable(value = "activeEvents", key = "'all'")
+    @Cacheable(value = "activeEvents", key = "'all'", sync = true)
     public List<LiveEventResponseDTO> getActiveEvents() {
         return mapper.toDTOList(repository.findByStatusOrderByCreatedAtDesc("ACTIVE"));
     }

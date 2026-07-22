@@ -163,7 +163,6 @@ export default function Webhooks() {
                   <tr>
                     <th className="px-4 py-3 font-medium">Status</th>
                     <th className="px-4 py-3 font-medium">Code</th>
-                    <th className="px-4 py-3 font-medium">Attempts</th>
                     <th className="px-4 py-3 font-medium">Timestamp</th>
                   </tr>
                 </thead>
@@ -180,7 +179,6 @@ export default function Webhooks() {
                         </span>
                       </td>
                       <td className="px-4 py-3 font-mono text-xs text-slate-400">{del.responseCode || '-'}</td>
-                      <td className="px-4 py-3">{del.attemptCount}</td>
                       <td className="px-4 py-3 text-xs text-slate-400">
                         {del.lastAttemptAt ? new Date(del.lastAttemptAt).toLocaleString() : '-'}
                       </td>

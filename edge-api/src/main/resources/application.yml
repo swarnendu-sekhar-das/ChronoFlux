@@ -3,6 +3,11 @@ server:
   forward-headers-strategy: framework
   servlet:
     context-path: /api/v1
+  tomcat:
+    threads:
+      max: 500
+    max-connections: 10000
+    accept-count: 5000
 
 spring:
   application:

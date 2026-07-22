@@ -5,43 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { getSchemas, createEvent } from '../services/api';
-import DynamicFormEngine from '../components/DynamicFormEngine';
 import { useToast } from '@/hooks/use-toast';
-
-// Extracts the type string from either flat ("string") or nested ({ type: "string", required: true }) formats
-const extractFieldType = (value: any): string => {
-  if (typeof value === 'string') return value.toLowerCase();
-  if (typeof value === 'object' && value !== null && value.type) return String(value.type).toLowerCase();
-  return 'any';
-};
-
-// Build a dynamic Zod schema based on the selected EventSchema's JSON definition
-const buildZodSchema = (schemaDefinition: Record<string, any> | null) => {
-  if (!schemaDefinition) return z.object({});
-
-  const shape: Record<string, any> = {};
-  
-  Object.entries(schemaDefinition).forEach(([key, value]) => {
-    const fieldType = extractFieldType(value);
-    const isRequired = typeof value === 'object' && value?.required === true;
-
-    switch (fieldType) {
-      case 'string':
-        shape[key] = isRequired ? z.string().min(1, 'Required') : z.string().optional().or(z.literal(''));
-        break;
-      case 'number':
-        shape[key] = z.number();
-        break;
-      case 'boolean':
-        shape[key] = z.boolean().default(false);
-        break;
-      default:
-        shape[key] = z.any();
-    }
-  });
-
-  return z.object(shape);
-};
 
 export default function CreateEvent() {
   const navigate = useNavigate();
@@ -57,19 +21,21 @@ export default function CreateEvent() {
     return schemas?.find((s) => s.id === selectedSchemaId) || null;
   }, [schemas, selectedSchemaId]);
 
-  // Dynamically create the Zod schema for the payload whenever the selected schema changes
-  const dynamicPayloadSchema = useMemo(() => {
-    return buildZodSchema(selectedSchema?.schemaDefinition || null);
-  }, [selectedSchema]);
-
-  // Master form schema (static fields + dynamic payload)
-  const masterFormSchema = useMemo(() => z.object({
+  // Master form schema (static fields + RAW json payload string)
+  const masterFormSchema = z.object({
     title: z.string().min(1, 'Title is required'),
     status: z.enum(['DRAFT', 'SCHEDULED', 'ACTIVE']),
     activeFrom: z.string().optional().or(z.literal('')),
     activeUntil: z.string().optional().or(z.literal('')),
-    payload: dynamicPayloadSchema,
-  }), [dynamicPayloadSchema]);
+    payload: z.string().refine((val) => {
+      try {
+        JSON.parse(val);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    }, 'Must be a valid JSON string'),
+  });
 
   type FormValues = z.infer<typeof masterFormSchema>;
 
@@ -77,10 +43,10 @@ export default function CreateEvent() {
     resolver: zodResolver(masterFormSchema),
     defaultValues: {
       status: 'DRAFT',
+      payload: '{}',
     }
   });
 
-  // Reset form when schema changes to clear old dynamic data and errors
   const handleSchemaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedSchemaId(e.target.value);
     reset({
@@ -88,7 +54,7 @@ export default function CreateEvent() {
       status: 'DRAFT',
       activeFrom: '',
       activeUntil: '',
-      payload: {},
+      payload: '{\n  \n}',
     });
   };
 
@@ -114,12 +80,11 @@ export default function CreateEvent() {
   });
 
   const onSubmit = (data: FormValues) => {
-    // Transform empty strings to null for ISO date fields before sending to API
     const payloadToSubmit = {
       schema: { id: selectedSchemaId },
       title: data.title,
       status: data.status,
-      payload: data.payload,
+      payload: JSON.parse(data.payload),
       activeFrom: data.activeFrom ? new Date(data.activeFrom).toISOString() : null,
       activeUntil: data.activeUntil ? new Date(data.activeUntil).toISOString() : null,
     };
@@ -138,7 +103,6 @@ export default function CreateEvent() {
       <div className="bg-slate-900 border border-slate-800 rounded-lg p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           
-          {/* Top Section: Static Master Fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-slate-300 mb-1">Select Schema</label>
@@ -200,18 +164,24 @@ export default function CreateEvent() {
             )}
           </div>
 
-          {/* Bottom Section: Dynamic Payload Engine */}
           {selectedSchema && (
             <div className="mt-8 border-t border-slate-800 pt-6">
-              <h3 className="text-lg font-semibold text-emerald-400 mb-4">
-                Dynamic Configuration ({selectedSchema.name})
+              <h3 className="text-lg font-semibold text-emerald-400 mb-2">
+                Payload Configuration (Raw JSON)
               </h3>
+              <p className="text-xs text-slate-400 mb-4">
+                Schema: <pre className="inline text-slate-300 bg-slate-950 p-1 rounded">{JSON.stringify(selectedSchema.schemaDefinition)}</pre>
+              </p>
               
-              <DynamicFormEngine 
-                schemaDefinition={selectedSchema.schemaDefinition}
-                register={register}
-                errors={errors}
-              />
+              <div className="col-span-2">
+                <textarea
+                  {...register('payload')}
+                  rows={8}
+                  className="w-full font-mono text-sm bg-slate-950 border border-slate-800 rounded-md px-3 py-2 text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder='{"key": "value"}'
+                />
+                {errors.payload && <p className="text-red-400 text-xs mt-1">{errors.payload.message}</p>}
+              </div>
             </div>
           )}
 

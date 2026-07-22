@@ -8,10 +8,10 @@ import com.example.webhook_worker.repository.WebhookRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.retry.annotation.Backoff;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -24,12 +24,16 @@ public class WebhookDeliveryService {
 
     private final WebhookRepository webhookRepository;
     private final WebhookDeliveryRepository deliveryRepository;
+    private final com.example.webhook_worker.repository.FailedWebhookRepository failedWebhookRepository;
     private final WebClient webClient;
+    private final ObjectMapper objectMapper;
 
-    public WebhookDeliveryService(WebhookRepository webhookRepository, WebhookDeliveryRepository deliveryRepository, WebClient webClient) {
+    public WebhookDeliveryService(WebhookRepository webhookRepository, WebhookDeliveryRepository deliveryRepository, com.example.webhook_worker.repository.FailedWebhookRepository failedWebhookRepository, WebClient webClient, ObjectMapper objectMapper) {
         this.webhookRepository = webhookRepository;
         this.deliveryRepository = deliveryRepository;
+        this.failedWebhookRepository = failedWebhookRepository;
         this.webClient = webClient;
+        this.objectMapper = objectMapper;
     }
 
     public void processEvent(LiveEventActivatedEvent event) {
@@ -48,29 +52,29 @@ public class WebhookDeliveryService {
             deliveryRepository.save(delivery);
 
             try {
-                deliverWithRetry(delivery, event.getPayload(), webhook.getTargetUrl());
+                deliverWebhook(delivery, event.getPayload(), webhook.getTargetUrl());
             } catch (Exception e) {
-                logger.error("Webhook delivery failed after retries for delivery ID: {}", delivery.getId());
-                // Rethrow so RabbitMQ can DLQ it if needed
-                throw new RuntimeException("Webhook delivery failed", e);
+                logger.error("Webhook delivery failed for delivery ID: {}", delivery.getId());
+                failedWebhookRepository.save(new com.example.webhook_worker.entity.FailedWebhook(event.getEventId(), event.getPayload(), e.getMessage()));
             }
         }
     }
 
-    @Retryable(maxAttempts = 3, backoff = @Backoff(delay = 2000, multiplier = 2))
-    public void deliverWithRetry(WebhookDelivery delivery, String payload, String targetUrl) {
-        delivery.setAttemptCount(delivery.getAttemptCount() + 1);
+    public void deliverWebhook(WebhookDelivery delivery, String payload, String targetUrl) throws Exception {
+        delivery.setAttemptCount(1);
         delivery.setLastAttemptAt(ZonedDateTime.now());
-        delivery.setStatus("RETRYING");
+        delivery.setStatus("ATTEMPTING");
         deliveryRepository.save(delivery);
         
         logger.info("Attempt {} delivering to URL: {}", delivery.getAttemptCount(), targetUrl);
 
         try {
+            JsonNode jsonNode = objectMapper.readTree(payload);
+
             webClient.post()
                     .uri(targetUrl)
                     .contentType(MediaType.APPLICATION_JSON)
-                    .bodyValue(payload)
+                    .bodyValue(jsonNode)
                     .retrieve()
                     .toBodilessEntity()
                     .block(); // Block since we are in a message listener thread
@@ -81,11 +85,9 @@ public class WebhookDeliveryService {
             logger.info("Delivery {} successful", delivery.getId());
         } catch (Exception e) {
             logger.error("Delivery {} failed: {}", delivery.getId(), e.getMessage());
-            if (delivery.getAttemptCount() >= 3) {
-                delivery.setStatus("FAILED");
-                deliveryRepository.save(delivery);
-            }
-            throw e; // Trigger retry
+            delivery.setStatus("FAILED");
+            deliveryRepository.save(delivery);
+            throw e;
         }
     }
 }

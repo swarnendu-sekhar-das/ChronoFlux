@@ -100,7 +100,7 @@ export default function Dashboard() {
                       Webhook {d.status === 'SUCCESS' ? 'Delivered' : d.status === 'FAILED' ? 'Failed' : 'Pending'}
                     </p>
                     <p className="text-xs text-slate-500 truncate mt-0.5">
-                      Target: {d.webhookId} | Event: {d.eventId}
+                      Webhook ID: {d.webhookId} | Event: {d.eventId}
                     </p>
                   </div>
                   <div className="text-right">

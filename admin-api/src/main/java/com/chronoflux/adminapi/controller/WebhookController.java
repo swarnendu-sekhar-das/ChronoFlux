@@ -61,6 +61,6 @@ public class WebhookController {
     @ApiResponse(responseCode = "200", description = "Successfully retrieved deliveries")
     @GetMapping("/deliveries")
     public List<WebhookDelivery> getWebhookDeliveries() {
-        return webhookDeliveryRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
+        return webhookDeliveryRepository.findTop50ByOrderByCreatedAtDesc();
     }
 }

@@ -11,9 +11,9 @@ import java.util.UUID;
 
 public interface LiveEventRepository extends JpaRepository<LiveEvent, UUID> {
     
-    @Query("SELECT e FROM LiveEvent e WHERE e.status = :status AND e.activeFrom <= :now")
+    @Query(value = "SELECT * FROM live_events WHERE status = :status AND active_from <= :now FOR UPDATE SKIP LOCKED", nativeQuery = true)
     List<LiveEvent> findEventsToActivate(@Param("status") String status, @Param("now") ZonedDateTime now);
 
-    @Query("SELECT e FROM LiveEvent e WHERE e.status = :status AND e.activeUntil <= :now")
+    @Query(value = "SELECT * FROM live_events WHERE status = :status AND active_until <= :now FOR UPDATE SKIP LOCKED", nativeQuery = true)
     List<LiveEvent> findEventsToExpire(@Param("status") String status, @Param("now") ZonedDateTime now);
 }
