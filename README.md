@@ -62,9 +62,3 @@ graph TD
 | **Message Broker** | RabbitMQ | Async webhook delivery with Database-backed retry mechanism |
 | **Containerization**| Docker & Docker Compose | Local development and deployment orchestration |
 | **Testing** | k6, Testcontainers, JUnit | Load testing and integration testing |
-
-3. Watch the `webhook-worker` logs fail to deliver: `docker logs chronoflux-webhook-worker-1 --tail 50`
-4. Verify the failure was recorded in the database:
-   ```bash
-   docker exec chronoflux-postgres-1 psql -U postgres -d chronoflux -c "SELECT * FROM failed_webhooks;"
-   ```
