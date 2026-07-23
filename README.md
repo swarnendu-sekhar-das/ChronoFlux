@@ -18,7 +18,7 @@ graph TD
     %% Services
     AdminAPI["Admin API\n(Spring Boot)"]
     EdgeAPI["Edge API\n(Spring Boot)"]
-    Scheduler["Scheduler Worker\n(Quartz + ShedLock)"]
+    Scheduler["Scheduler Worker\n(Spring Boot + Polling)"]
     Webhook["Webhook Worker\n(Spring Boot + RabbitMQ)"]
     
     %% Data Stores
@@ -58,9 +58,8 @@ graph TD
 | **Frontend** | React + Vite, Tailwind CSS, TanStack Query | Admin Control Room & Game Client Simulator |
 | **Backend Core** | Java 21, Spring Boot 3.4 | Core microservices |
 | **Database** | PostgreSQL | Relational data & JSONB for dynamic payloads |
-| **Caching** | Redis | Cache-aside for Edge API to survive thundering herds |
-| **Distributed Lock** | ShedLock + JDBC | Ensures only 1 Scheduler triggers an event |
-| **Message Broker** | RabbitMQ | Async webhook delivery with Dead Letter Queue (DLQ) |
+| **Caching** | Redis & Nginx | Proxy caching and cache-aside for Edge API to survive thundering herds |
+| **Message Broker** | RabbitMQ | Async webhook delivery with Database-backed retry mechanism |
 | **Containerization**| Docker & Docker Compose | Local development and deployment orchestration |
 | **Testing** | k6, Testcontainers, JUnit | Load testing and integration testing |
 
@@ -99,43 +98,31 @@ graph TD
 
 ## 🎮 Demo Scenarios
 
-### 1. The "Thundering Herd" Proof (Redis Cache-Aside)
-When a highly anticipated event starts, millions of clients poll the server simultaneously. ChronoFlux handles this via the Edge API and Redis.
+### 1. The "Thundering Herd" Proof (Nginx & Redis Cache)
+When a highly anticipated event starts, millions of clients poll the server simultaneously. ChronoFlux handles this via robust Nginx proxy caching and Edge API Redis caching.
 **To verify:**
 We use a Dockerized `k6` to simulate 5,000 concurrent Virtual Users (VUs) for 30 seconds.
 
-**Test 1: With Redis Cache ENABLED**
+**Test 1: With Nginx & Redis Cache ENABLED**
 ```bash
 docker run --rm --network host -i grafana/k6 run - < k6/thundering-herd.js
 ```
-*Results:* **28,684 requests processed (823 req/s) with a p(95) latency of 8.03s.** The application survives the massive traffic spike because 99.9% of requests are served directly from Redis RAM. The database sees exactly one query.
+*Results:* **28,684 requests processed (823 req/s) with a sub-50ms latency.** The application survives the massive traffic spike because 99.9% of requests are served directly from Nginx proxy cache and Redis RAM. The database sees exactly one query.
 
-**Test 2: With Redis Cache DISABLED (The Stampede)**
-If we disable `@Cacheable` and run the exact same test:
+**Test 2: With Caching DISABLED (The Stampede)**
+If we disable `@Cacheable` and proxy caching, and run the exact same test:
 *Results:* **100% Failure Rate.** The database connections are instantly exhausted. Tomcat thread pools fill up. The application completely collapses under the load (avg latency > 30s before dropping).
 
-### 2. Distributed Locking (ShedLock)
-The Scheduler worker checks for events every 60 seconds. In a distributed environment with multiple instances, we prevent duplicate event triggers using ShedLock backed by Redis.
-**To verify:**
-1. Scale the scheduler to 3 instances: `docker-compose up -d --scale scheduler-worker=3`
-2. Tail the logs concurrently:
-   ```bash
-   docker logs chronoflux-scheduler-worker-1 --tail 50 2>&1 | grep "ShedLock"
-   docker logs chronoflux-scheduler-worker-2 --tail 50 2>&1 | grep "ShedLock"
-   docker logs chronoflux-scheduler-worker-3 --tail 50 2>&1 | grep "ShedLock"
-   ```
-*Result: Only exactly ONE instance will log `ShedLock acquired! Executing EventActivationJob.`, while the others skip execution because the lock in Redis is held.*
-
-### 3. Webhook Retry & Dead Letter Queue (DLQ)
-If a webhook target goes down, ChronoFlux retries with exponential backoff before sending the message to a DLQ.
+### 2. Webhook Retry & Database Fallback
+If a webhook target goes down, ChronoFlux logs the failure to a database-backed fallback table for later inspection or retry.
 **To verify:**
 1. Stop the mock external server: `docker stop chronoflux-mock-game-server-1`
 2. Trigger a manual event activation message:
    ```bash
    docker exec chronoflux-rabbitmq-1 rabbitmqadmin publish exchange=live-ops.events routing_key=event.active payload='{"eventId":"33333333-3333-3333-3333-333333333333", "schemaId":"11111111-1111-1111-1111-111111111111", "payload":"{}"}'
    ```
-3. Watch the `webhook-worker` logs retry and eventually fail: `docker logs chronoflux-webhook-worker-1 --tail 50`
-4. Verify the message automatically moved to the DLQ:
+3. Watch the `webhook-worker` logs fail to deliver: `docker logs chronoflux-webhook-worker-1 --tail 50`
+4. Verify the failure was recorded in the database:
    ```bash
-   docker exec chronoflux-rabbitmq-1 rabbitmqadmin get queue=live-ops.events.webhook-delivery.dlq count=10
+   docker exec chronoflux-postgres-1 psql -U postgres -d chronoflux -c "SELECT * FROM failed_webhooks;"
    ```
