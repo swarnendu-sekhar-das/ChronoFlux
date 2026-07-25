@@ -27,11 +27,12 @@ public class LiveEventService {
     }
 
     private void invalidateCache() {
-        redisTemplate.delete("activeEvents::all");
+        // Evict all paginated cache keys (e.g., all_0_10, all_1_10) so edge-api serves fresh data
+        redisTemplate.delete(redisTemplate.keys("activeEvents*"));
     }
 
-    public List<LiveEventDTO> getAllEvents() {
-        return eventMapper.toDTOList(eventRepository.findAll());
+    public org.springframework.data.domain.Page<LiveEventDTO> getAllEvents(org.springframework.data.domain.Pageable pageable) {
+        return eventRepository.findAll(pageable).map(eventMapper::toDTO);
     }
 
     @Transactional

@@ -49,9 +49,12 @@ public class LiveEvent {
         if (status == EventStatus.SCHEDULED && activeFrom == null) {
             throw new IllegalStateException("Status SCHEDULED requires activeFrom to be set.");
         }
+        if (activeUntil != null && activeFrom != null && activeUntil.isBefore(activeFrom)) {
+            throw new IllegalArgumentException("activeUntil cannot be before activeFrom");
+        }
     }
 
-    // Getters and Setters
+    // Runs before every INSERT and UPDATE to catch invalid data before it hits the DB
 
     public UUID getId() {
         return id;

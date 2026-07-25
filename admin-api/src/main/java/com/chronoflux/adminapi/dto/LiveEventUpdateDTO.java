@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.util.Map;
 
 public class LiveEventUpdateDTO {
+    @jakarta.validation.constraints.NotBlank(message = "Title cannot be empty")
     private String title;
     private EventStatus status;
     private Map<String, Object> payload;

@@ -19,8 +19,8 @@ public class LiveEventService {
         this.mapper = mapper;
     }
 
-    @Cacheable(value = "activeEvents", key = "'all'", sync = true)
-    public List<LiveEventResponseDTO> getActiveEvents() {
-        return mapper.toDTOList(repository.findByStatusOrderByCreatedAtDesc("ACTIVE"));
+    @Cacheable(value = "activeEvents", key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize", sync = true)
+    public org.springframework.data.domain.Page<LiveEventResponseDTO> getActiveEvents(org.springframework.data.domain.Pageable pageable) {
+        return repository.findByStatusOrderByCreatedAtDesc("ACTIVE", pageable).map(mapper::toDTO);
     }
 }

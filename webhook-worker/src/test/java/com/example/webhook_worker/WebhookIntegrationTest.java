@@ -34,7 +34,7 @@ public class WebhookIntegrationTest {
 
     @Test
     public void contextLoads() {
-        // Validates that RabbitMQ + DB wire up correctly in Spring context and Retryable configs load
+        // Validates that RabbitMQ and Postgres wire up correctly with Testcontainers
         assertTrue(true, "Context loaded successfully with Testcontainers");
     }
 }

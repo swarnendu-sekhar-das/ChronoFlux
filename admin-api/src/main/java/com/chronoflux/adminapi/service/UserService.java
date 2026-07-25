@@ -10,6 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
     private final UserRepository userRepository;
 
+    @org.springframework.beans.factory.annotation.Value("${admin.allowed.emails:admin@chronoflux.com}")
+    private java.util.List<String> allowedAdmins;
+
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
@@ -18,6 +21,10 @@ public class UserService {
     public User upsertUser(GoogleIdToken.Payload payload) {
         String googleSub = payload.getSubject();
         
+        if (!allowedAdmins.contains(payload.getEmail())) {
+            throw new SecurityException("Not an authorized admin.");
+        }
+        
         return userRepository.findByGoogleSub(googleSub)
                 .orElseGet(() -> {
                     User newUser = new User();
@@ -25,7 +32,7 @@ public class UserService {
                     newUser.setEmail(payload.getEmail());
                     newUser.setName((String) payload.get("name"));
                     newUser.setAvatarUrl((String) payload.get("picture"));
-                    newUser.setRole("ADMIN"); // As per design decision, everyone is admin for demo
+                    newUser.setRole("ADMIN"); 
                     return userRepository.save(newUser);
                 });
     }

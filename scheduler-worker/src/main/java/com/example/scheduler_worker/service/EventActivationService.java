@@ -19,12 +19,12 @@ public class EventActivationService {
     private static final Logger logger = LoggerFactory.getLogger(EventActivationService.class);
 
     private final LiveEventRepository repository;
-    private final RabbitTemplate rabbitTemplate;
+    private final org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
     private final StringRedisTemplate redisTemplate;
 
-    public EventActivationService(LiveEventRepository repository, RabbitTemplate rabbitTemplate, StringRedisTemplate redisTemplate) {
+    public EventActivationService(LiveEventRepository repository, org.springframework.context.ApplicationEventPublisher applicationEventPublisher, StringRedisTemplate redisTemplate) {
         this.repository = repository;
-        this.rabbitTemplate = rabbitTemplate;
+        this.applicationEventPublisher = applicationEventPublisher;
         this.redisTemplate = redisTemplate;
     }
 
@@ -33,7 +33,7 @@ public class EventActivationService {
         ZonedDateTime now = ZonedDateTime.now();
         boolean cacheNeedsUpdate = false;
 
-        // 1. Expire Events
+        // Step 1: expire events whose activeUntil has passed
         List<LiveEvent> eventsToExpire = repository.findEventsToExpire("ACTIVE", now);
         for (LiveEvent event : eventsToExpire) {
             logger.info("Expiring event: {} (ID: {})", event.getTitle(), event.getId());
@@ -42,7 +42,7 @@ public class EventActivationService {
             cacheNeedsUpdate = true;
         }
 
-        // 2. Activate Events
+        // Step 2: activate events whose activeFrom time has arrived
         List<LiveEvent> eventsToActivate = repository.findEventsToActivate("SCHEDULED", now);
         for (LiveEvent event : eventsToActivate) {
             logger.info("Activating event: {} (ID: {})", event.getTitle(), event.getId());
@@ -54,14 +54,15 @@ public class EventActivationService {
                     event.getSchemaId(),
                     event.getPayload()
             );
-            rabbitTemplate.convertAndSend("live-ops.events", "event.active", payload);
+            // Using @TransactionalEventListener to fire RabbitMQ only after DB commit — avoids dual-write inconsistency
+            applicationEventPublisher.publishEvent(new com.example.scheduler_worker.event.EventActivatedSpringEvent(payload));
             cacheNeedsUpdate = true;
         }
 
-        // 3. Invalidate / Warm Cache
+        // Step 3: if anything changed, evict all paginated cache entries so edge-api serves fresh data
         if (cacheNeedsUpdate) {
-            logger.info("Invalidating Redis cache 'activeEvents::all'");
-            redisTemplate.delete("activeEvents::all");
+            logger.info("Invalidating Redis cache 'activeEvents*'");
+            redisTemplate.delete(redisTemplate.keys("activeEvents*"));
         }
     }
 }

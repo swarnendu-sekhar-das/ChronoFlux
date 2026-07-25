@@ -6,5 +6,5 @@ import java.util.List;
 import java.util.UUID;
 
 public interface LiveEventRepository extends JpaRepository<LiveEvent, UUID> {
-    List<LiveEvent> findByStatusOrderByCreatedAtDesc(String status);
+    org.springframework.data.domain.Page<LiveEvent> findByStatusOrderByCreatedAtDesc(String status, org.springframework.data.domain.Pageable pageable);
 }

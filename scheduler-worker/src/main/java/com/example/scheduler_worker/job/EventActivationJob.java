@@ -16,7 +16,7 @@ public class EventActivationJob {
         this.activationService = activationService;
     }
 
-    @Scheduled(fixedRate = 60000) // Runs every 60 seconds
+    @Scheduled(fixedRate = 60000) // poll DB every minute to activate/expire events
     public void activateScheduledEvents() {
         logger.info("Executing EventActivationJob.");
         activationService.activateScheduledEvents();

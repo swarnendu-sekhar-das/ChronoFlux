@@ -35,7 +35,6 @@ public class EventSchema {
     @UpdateTimestamp
     private Instant updatedAt;
 
-    // Getters and Setters
 
     public UUID getId() {
         return id;

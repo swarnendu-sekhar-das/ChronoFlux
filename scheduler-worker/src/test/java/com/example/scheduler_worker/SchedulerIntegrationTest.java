@@ -40,7 +40,7 @@ public class SchedulerIntegrationTest {
 
     @Test
     public void contextLoads() {
-        // Validates that Redis + DB wire up correctly in Spring context
+        // Validates that Redis, RabbitMQ and Postgres wire up correctly with Testcontainers
         assertTrue(true, "Context loaded successfully with Testcontainers");
     }
 }

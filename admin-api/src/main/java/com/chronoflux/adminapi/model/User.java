@@ -20,12 +20,11 @@ public class User {
     private String avatarUrl;
 
     @Column(nullable = false)
-    private String role = "PLAYER"; // Default to PLAYER, changed to ADMIN in UserService if needed.
+    private String role = "PLAYER"; // only pre-approved emails get ADMIN (see UserService)
 
     @Column(name = "google_sub", unique = true)
     private String googleSub;
 
-    // Getters and Setters
 
     public UUID getId() {
         return id;

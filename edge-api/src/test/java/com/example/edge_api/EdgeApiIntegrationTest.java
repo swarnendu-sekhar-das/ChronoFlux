@@ -45,16 +45,16 @@ public class EdgeApiIntegrationTest {
 
     @Test
     public void testCacheStampedePrevention() {
-        when(repository.findByStatusOrderByCreatedAtDesc("ACTIVE"))
-                .thenReturn(List.of(new LiveEvent()));
+        when(repository.findByStatusOrderByCreatedAtDesc(eq("ACTIVE"), any(org.springframework.data.domain.Pageable.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(new LiveEvent())));
 
-        // First call hits the mock DB and caches the result
-        service.getActiveEvents();
+        // 1. First call hits the mock DB and populates the Redis cache
+        service.getActiveEvents(org.springframework.data.domain.PageRequest.of(0, 10));
 
-        // Second call should hit the cache, not the DB
-        service.getActiveEvents();
+        // 2. Second call should hit the cache directly
+        service.getActiveEvents(org.springframework.data.domain.PageRequest.of(0, 10));
 
-        // Verify the DB was only called exactly once!
-        verify(repository, times(1)).findByStatusOrderByCreatedAtDesc("ACTIVE");
+        // 3. Verify the DB was only called exactly once
+        verify(repository, times(1)).findByStatusOrderByCreatedAtDesc(eq("ACTIVE"), any(org.springframework.data.domain.Pageable.class));
     }
 }

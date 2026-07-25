@@ -37,7 +37,6 @@ public class FailedWebhook {
         this.failedAt = ZonedDateTime.now();
     }
 
-    // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
     public UUID getEventId() { return eventId; }

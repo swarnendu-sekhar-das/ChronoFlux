@@ -39,14 +39,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (payload != null) {
                 String googleSub = payload.getSubject();
                 userRepository.findByGoogleSub(googleSub).ifPresent(user -> {
-                    // Create the authentication token
+                    // Populate Spring Security context so downstream @PreAuthorize and anyRequest().authenticated() work
                     UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                             user, 
                             null, 
                             List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole()))
                     );
-                    
-                    // Set the context
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 });
             }

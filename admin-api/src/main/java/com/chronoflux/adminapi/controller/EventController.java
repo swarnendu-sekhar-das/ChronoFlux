@@ -27,11 +27,13 @@ public class EventController {
         this.eventService = eventService;
     }
 
-    @Operation(summary = "Get all events", description = "Retrieves a list of all live events")
+    @Operation(summary = "Get all events", description = "Retrieves a paginated list of all live events")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved list")
     @GetMapping
-    public ResponseEntity<List<LiveEventDTO>> getAllEvents() {
-        return ResponseEntity.ok(eventService.getAllEvents());
+    public ResponseEntity<org.springframework.data.domain.Page<LiveEventDTO>> getAllEvents(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(eventService.getAllEvents(org.springframework.data.domain.PageRequest.of(page, size)));
     }
 
     @Operation(summary = "Create a new event", description = "Creates a new live event based on a schema")
@@ -40,7 +42,7 @@ public class EventController {
             @ApiResponse(responseCode = "400", description = "Invalid payload or schema")
     })
     @PostMapping
-    public ResponseEntity<LiveEventDTO> createEvent(@RequestBody LiveEventCreateDTO event) {
+    public ResponseEntity<LiveEventDTO> createEvent(@jakarta.validation.Valid @RequestBody LiveEventCreateDTO event) {
         LiveEventDTO savedEvent = eventService.createEvent(event);
         return new ResponseEntity<>(savedEvent, HttpStatus.CREATED);
     }
@@ -63,7 +65,7 @@ public class EventController {
             @ApiResponse(responseCode = "404", description = "Event not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<LiveEventDTO> updateEvent(@PathVariable UUID id, @RequestBody LiveEventUpdateDTO eventDetails) {
+    public ResponseEntity<LiveEventDTO> updateEvent(@PathVariable UUID id, @jakarta.validation.Valid @RequestBody LiveEventUpdateDTO eventDetails) {
         Optional<LiveEventDTO> updatedEvent = eventService.updateEvent(id, eventDetails);
         return updatedEvent.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

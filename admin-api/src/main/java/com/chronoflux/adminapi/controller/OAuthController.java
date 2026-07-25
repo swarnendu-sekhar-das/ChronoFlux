@@ -29,15 +29,15 @@ public class OAuthController {
         GoogleIdToken.Payload tokenPayload = tokenService.verifyToken(idTokenString);
         
         if (tokenPayload != null) {
-            // Valid token, upsert user in DB
             userService.upsertUser(tokenPayload);
 
-            // Create a HTTP-only cookie (Secure=false for local HTTP development)
+            // HttpOnly prevents JS from reading the token, SameSite=Strict blocks CSRF
             Cookie cookie = new Cookie("AUTH_TOKEN", idTokenString);
             cookie.setHttpOnly(true);
-            cookie.setSecure(false); // Set to true in production with HTTPS
+            cookie.setSecure(false); // TODO: set to true when deployed on HTTPS
+            cookie.setAttribute("SameSite", "Strict");
             cookie.setPath("/");
-            cookie.setMaxAge(3600); // 1 hour
+            cookie.setMaxAge(3600); // 1 hour session
             
             response.addCookie(cookie);
             
@@ -49,9 +49,11 @@ public class OAuthController {
     
     @PostMapping("/signout")
     public ResponseEntity<?> signout(HttpServletResponse response) {
+        // Clear cookie by setting maxAge=0 (same path and flags as the original)
         Cookie cookie = new Cookie("AUTH_TOKEN", null);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Must match the original cookie's Secure flag
+        cookie.setSecure(false);
+        cookie.setAttribute("SameSite", "Strict");
         cookie.setPath("/");
         cookie.setMaxAge(0);
         

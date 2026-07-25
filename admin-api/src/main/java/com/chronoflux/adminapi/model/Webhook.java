@@ -29,7 +29,6 @@ public class Webhook {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    // Getters and Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
