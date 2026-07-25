@@ -6,6 +6,7 @@ import com.chronoflux.adminapi.mapper.EventSchemaMapper;
 import com.chronoflux.adminapi.model.EventSchema;
 import com.chronoflux.adminapi.repository.EventSchemaRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,8 +23,11 @@ public class EventSchemaService {
         this.schemaMapper = schemaMapper;
     }
 
-    public List<EventSchemaDTO> getAllSchemas() {
-        return schemaMapper.toDTOList(schemaRepository.findAll());
+    public List<EventSchemaDTO> getAllSchemas(boolean includeArchived) {
+        if (includeArchived) {
+            return schemaMapper.toDTOList(schemaRepository.findAll());
+        }
+        return schemaMapper.toDTOList(schemaRepository.findByArchivedFalse());
     }
 
     public EventSchemaDTO createSchema(EventSchemaCreateDTO schemaCreateDTO) {
@@ -34,5 +38,14 @@ public class EventSchemaService {
 
     public Optional<EventSchemaDTO> getSchemaById(UUID id) {
         return schemaRepository.findById(id).map(schemaMapper::toDTO);
+    }
+
+    @Transactional
+    public Optional<EventSchemaDTO> archiveSchema(UUID id) {
+        return schemaRepository.findById(id).map(schema -> {
+            schema.setArchived(true);
+            EventSchema archivedSchema = schemaRepository.save(schema);
+            return schemaMapper.toDTO(archivedSchema);
+        });
     }
 }

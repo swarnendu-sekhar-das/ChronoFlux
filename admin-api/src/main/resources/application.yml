@@ -21,3 +21,7 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+
+admin:
+  allowed:
+    emails: ${ADMIN_ALLOWED_EMAILS:admin@chronoflux.com,employee.esdproject@gmail.com}

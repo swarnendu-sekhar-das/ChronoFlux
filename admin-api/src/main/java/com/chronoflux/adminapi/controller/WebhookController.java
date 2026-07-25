@@ -53,7 +53,7 @@ public class WebhookController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Get webhook deliveries", description = "Retrieves the history of webhook deliveries (including DB-backed retries)")
+    @Operation(summary = "Get webhook deliveries", description = "Retrieves the history of webhook deliveries (including failed delivery capture logs)")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved deliveries")
     @GetMapping("/deliveries")
     public List<WebhookDeliveryDTO> getWebhookDeliveries() {

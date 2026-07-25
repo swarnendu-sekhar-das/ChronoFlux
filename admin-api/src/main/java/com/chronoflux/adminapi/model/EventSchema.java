@@ -35,6 +35,9 @@ public class EventSchema {
     @UpdateTimestamp
     private Instant updatedAt;
 
+    @Column(nullable = false)
+    private Boolean archived = false;
+
 
     public UUID getId() {
         return id;
@@ -82,5 +85,13 @@ public class EventSchema {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public Boolean getArchived() {
+        return archived;
+    }
+
+    public void setArchived(Boolean archived) {
+        this.archived = archived;
     }
 }

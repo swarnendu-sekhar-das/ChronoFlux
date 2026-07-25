@@ -32,8 +32,9 @@ public class EventController {
     @GetMapping
     public ResponseEntity<org.springframework.data.domain.Page<LiveEventDTO>> getAllEvents(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(eventService.getAllEvents(org.springframework.data.domain.PageRequest.of(page, size)));
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "false") boolean includeArchived) {
+        return ResponseEntity.ok(eventService.getAllEvents(org.springframework.data.domain.PageRequest.of(page, size), includeArchived));
     }
 
     @Operation(summary = "Create a new event", description = "Creates a new live event based on a schema")
@@ -71,16 +72,15 @@ public class EventController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @Operation(summary = "Delete an event", description = "Deletes an event by its ID")
+    @Operation(summary = "Archive an event", description = "Moves an event to ARCHIVED status (soft delete)")
     @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Event successfully deleted"),
+            @ApiResponse(responseCode = "200", description = "Event successfully archived"),
             @ApiResponse(responseCode = "404", description = "Event not found")
     })
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEvent(@PathVariable UUID id) {
-        if (!eventService.deleteEvent(id)) {
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.noContent().build();
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<LiveEventDTO> archiveEvent(@PathVariable UUID id) {
+        return eventService.archiveEvent(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

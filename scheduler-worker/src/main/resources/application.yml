@@ -21,3 +21,8 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASS:guest}
+
+scheduler:
+  polling-rate-ms: ${SCHEDULER_POLLING_RATE_MS:60000}
+  max-jitter-ms: ${SCHEDULER_MAX_JITTER_MS:3000}
+  batch-size: ${SCHEDULER_BATCH_SIZE:50}

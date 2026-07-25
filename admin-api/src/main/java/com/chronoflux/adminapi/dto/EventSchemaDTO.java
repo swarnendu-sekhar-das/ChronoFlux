@@ -11,6 +11,7 @@ public class EventSchemaDTO {
     private Map<String, Object> schemaDefinition;
     private Instant createdAt;
     private Instant updatedAt;
+    private Boolean archived;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -24,4 +25,6 @@ public class EventSchemaDTO {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+    public Boolean getArchived() { return archived; }
+    public void setArchived(Boolean archived) { this.archived = archived; }
 }

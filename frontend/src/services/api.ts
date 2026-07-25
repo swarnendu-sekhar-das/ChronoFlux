@@ -23,16 +23,23 @@ export interface Schema {
   name: string;
   description?: string;
   schemaDefinition: any;
+  archived?: boolean;
   createdAt: string;
 }
 
-export const getSchemas = async (): Promise<Schema[]> => {
-  const response = await api.get('/api/admin/schemas');
+export const getSchemas = async (includeArchived?: boolean | any): Promise<Schema[]> => {
+  const include = typeof includeArchived === 'boolean' ? includeArchived : false;
+  const response = await api.get('/api/admin/schemas', { params: { includeArchived: include } });
   return response.data;
 };
 
 export const createSchema = async (data: { name: string, description: string, schemaDefinition: any }): Promise<Schema> => {
   const response = await api.post('/api/admin/schemas', data);
+  return response.data;
+};
+
+export const archiveSchema = async (id: string): Promise<Schema> => {
+  const response = await api.put(`/api/admin/schemas/${id}/archive`);
   return response.data;
 };
 
@@ -48,8 +55,9 @@ export interface Event {
   createdAt: string;
 }
 
-export const getEvents = async (): Promise<Event[]> => {
-  const response = await api.get('/api/admin/events');
+export const getEvents = async (includeArchived?: boolean | any): Promise<Event[]> => {
+  const include = typeof includeArchived === 'boolean' ? includeArchived : false;
+  const response = await api.get('/api/admin/events', { params: { includeArchived: include } });
   return response.data.content || [];
 };
 
@@ -65,6 +73,16 @@ export const getActiveEvents = async (): Promise<Event[]> => {
 
 export const createEvent = async (data: any): Promise<Event> => {
   const response = await api.post('/api/admin/events', data);
+  return response.data;
+};
+
+export const updateEvent = async (id: string, data: any): Promise<Event> => {
+  const response = await api.put(`/api/admin/events/${id}`, data);
+  return response.data;
+};
+
+export const archiveEvent = async (id: string): Promise<Event> => {
+  const response = await api.put(`/api/admin/events/${id}/archive`);
   return response.data;
 };
 

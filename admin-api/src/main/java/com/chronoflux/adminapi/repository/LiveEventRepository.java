@@ -8,4 +8,6 @@ import java.util.UUID;
 @Repository
 public interface LiveEventRepository extends JpaRepository<LiveEvent, UUID> {
     long countByStatus(com.chronoflux.adminapi.model.EventStatus status);
+    boolean existsBySchemaId(UUID schemaId);
+    org.springframework.data.domain.Page<LiveEvent> findByStatusNot(com.chronoflux.adminapi.model.EventStatus status, org.springframework.data.domain.Pageable pageable);
 }

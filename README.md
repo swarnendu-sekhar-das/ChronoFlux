@@ -59,6 +59,6 @@ graph TD
 | **Backend Core** | Java 21, Spring Boot 3.4 | Core microservices |
 | **Database** | PostgreSQL | Relational data & JSONB for dynamic payloads |
 | **Caching** | Redis & Nginx | Proxy caching and cache-aside for Edge API to survive thundering herds |
-| **Message Broker** | RabbitMQ | Async webhook delivery with Database-backed retry mechanism |
+| **Message Broker** | RabbitMQ | Async webhook delivery with delivery attempt logging |
 | **Containerization**| Docker & Docker Compose | Local development and deployment orchestration |
 | **Testing** | k6, Testcontainers, JUnit | Load testing and integration testing |

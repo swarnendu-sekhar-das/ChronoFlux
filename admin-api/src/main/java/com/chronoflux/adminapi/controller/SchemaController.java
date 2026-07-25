@@ -29,8 +29,9 @@ public class SchemaController {
     @Operation(summary = "Get all schemas", description = "Retrieves a list of all event schemas")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved list")
     @GetMapping
-    public ResponseEntity<List<EventSchemaDTO>> getAllSchemas() {
-        return ResponseEntity.ok(schemaService.getAllSchemas());
+    public ResponseEntity<List<EventSchemaDTO>> getAllSchemas(
+            @RequestParam(defaultValue = "false") boolean includeArchived) {
+        return ResponseEntity.ok(schemaService.getAllSchemas(includeArchived));
     }
 
     @Operation(summary = "Create a new schema", description = "Creates a new event schema structure")
@@ -54,5 +55,17 @@ public class SchemaController {
         Optional<EventSchemaDTO> schema = schemaService.getSchemaById(id);
         return schema.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @Operation(summary = "Archive a schema", description = "Marks an event schema as archived (soft delete)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Schema successfully archived"),
+            @ApiResponse(responseCode = "404", description = "Schema not found")
+    })
+    @PutMapping("/{id}/archive")
+    public ResponseEntity<EventSchemaDTO> archiveSchema(@PathVariable UUID id) {
+        return schemaService.archiveSchema(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }

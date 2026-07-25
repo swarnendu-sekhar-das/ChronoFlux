@@ -12,13 +12,20 @@ public class EventActivationJob {
     private static final Logger logger = LoggerFactory.getLogger(EventActivationJob.class);
     private final EventActivationService activationService;
 
+    @org.springframework.beans.factory.annotation.Value("${scheduler.max-jitter-ms:3000}")
+    private long maxJitterMs;
+
     public EventActivationJob(EventActivationService activationService) {
         this.activationService = activationService;
     }
 
-    @Scheduled(fixedRate = 60000) // poll DB every minute to activate/expire events
-    public void activateScheduledEvents() {
-        logger.info("Executing EventActivationJob.");
+    @Scheduled(fixedRateString = "${scheduler.polling-rate-ms:60000}") // poll DB every minute to activate/expire events
+    public void activateScheduledEvents() throws InterruptedException {
+        long jitterMs = (long) (Math.random() * maxJitterMs);
+        if (jitterMs > 0) {
+            Thread.sleep(jitterMs);
+        }
+        logger.info("Executing EventActivationJob with jitter {}ms.", jitterMs);
         activationService.activateScheduledEvents();
     }
 }

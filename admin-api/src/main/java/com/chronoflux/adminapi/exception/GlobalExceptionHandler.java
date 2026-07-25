@@ -33,6 +33,16 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleSecurityException(SecurityException ex) {
         return ResponseEntity.status(403).body(new ErrorResponse(ex.getMessage()));
     }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(org.springframework.dao.DataIntegrityViolationException ex) {
+        return ResponseEntity.badRequest().body(new ErrorResponse("Database constraint violation: Cannot complete operation because this record is referenced by other active data."));
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorResponse> handleGenericException(Exception ex) {
+        return ResponseEntity.status(500).body(new ErrorResponse("Internal Server Error: " + ex.getMessage()));
+    }
     
     public static class ErrorResponse {
         private String message;

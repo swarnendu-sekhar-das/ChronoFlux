@@ -7,4 +7,5 @@ import java.util.UUID;
 
 @Repository
 public interface EventSchemaRepository extends JpaRepository<EventSchema, UUID> {
+    java.util.List<EventSchema> findByArchivedFalse();
 }

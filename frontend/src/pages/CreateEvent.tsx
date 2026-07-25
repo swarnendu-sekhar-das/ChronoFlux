@@ -24,7 +24,7 @@ export default function CreateEvent() {
   // Master form schema (static fields + RAW json payload string)
   const masterFormSchema = z.object({
     title: z.string().min(1, 'Title is required'),
-    status: z.enum(['DRAFT', 'SCHEDULED', 'ACTIVE']),
+    status: z.enum(['DRAFT', 'SCHEDULED']),
     activeFrom: z.string().optional().or(z.literal('')),
     activeUntil: z.string().optional().or(z.literal('')),
     payload: z.string().refine((val) => {
@@ -39,7 +39,7 @@ export default function CreateEvent() {
 
   type FormValues = z.infer<typeof masterFormSchema>;
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, reset } = useForm<FormValues>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, reset, setValue } = useForm<FormValues>({
     resolver: zodResolver(masterFormSchema),
     defaultValues: {
       status: 'DRAFT',
@@ -138,13 +138,24 @@ export default function CreateEvent() {
                   >
                     <option value="DRAFT">Draft</option>
                     <option value="SCHEDULED">Scheduled</option>
-                    <option value="ACTIVE">Active (Immediate)</option>
                   </select>
                 </div>
 
                 <div className="col-span-2 grid grid-cols-2 gap-4 border-t border-slate-800 pt-4 mt-2">
                   <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Active From</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-sm font-medium text-slate-300">Active From</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setValue('status', 'SCHEDULED');
+                          setValue('activeFrom', new Date().toISOString().slice(0, 16));
+                        }}
+                        className="text-xs text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
+                      >
+                        ⚡ Set to Now (Immediate Release)
+                      </button>
+                    </div>
                     <input
                       type="datetime-local"
                       {...register('activeFrom')}

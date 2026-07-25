@@ -4,5 +4,6 @@ public enum EventStatus {
     DRAFT,
     SCHEDULED,
     ACTIVE,
-    EXPIRED
+    EXPIRED,
+    ARCHIVED
 }

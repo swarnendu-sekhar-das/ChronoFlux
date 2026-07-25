@@ -22,28 +22,49 @@ public class EventActivationService {
     private final org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
     private final StringRedisTemplate redisTemplate;
 
-    public EventActivationService(LiveEventRepository repository, org.springframework.context.ApplicationEventPublisher applicationEventPublisher, StringRedisTemplate redisTemplate) {
+    @org.springframework.beans.factory.annotation.Value("${scheduler.batch-size:50}")
+    private int batchSize;
+
+    private final org.springframework.beans.factory.ObjectProvider<EventActivationService> selfProvider;
+
+    public EventActivationService(LiveEventRepository repository, org.springframework.context.ApplicationEventPublisher applicationEventPublisher, StringRedisTemplate redisTemplate, org.springframework.beans.factory.ObjectProvider<EventActivationService> selfProvider) {
         this.repository = repository;
         this.applicationEventPublisher = applicationEventPublisher;
         this.redisTemplate = redisTemplate;
+        this.selfProvider = selfProvider;
+    }
+
+    public void activateScheduledEvents() {
+        ZonedDateTime now = ZonedDateTime.now();
+        EventActivationService self = selfProvider.getIfAvailable();
+        if (self == null) self = this;
+
+        while (self.expireNextBatch(now) == batchSize) {
+            logger.debug("Expired a full batch of {} events, checking for more...", batchSize);
+        }
+        while (self.activateNextBatch(now) == batchSize) {
+            logger.debug("Activated a full batch of {} events, checking for more...", batchSize);
+        }
     }
 
     @Transactional
-    public void activateScheduledEvents() {
-        ZonedDateTime now = ZonedDateTime.now();
-        boolean cacheNeedsUpdate = false;
-
-        // Step 1: expire events whose activeUntil has passed
-        List<LiveEvent> eventsToExpire = repository.findEventsToExpire("ACTIVE", now);
+    public int expireNextBatch(ZonedDateTime now) {
+        List<LiveEvent> eventsToExpire = repository.findEventsToExpire("ACTIVE", now, batchSize);
         for (LiveEvent event : eventsToExpire) {
             logger.info("Expiring event: {} (ID: {})", event.getTitle(), event.getId());
             event.setStatus("EXPIRED");
             repository.save(event);
-            cacheNeedsUpdate = true;
         }
+        if (!eventsToExpire.isEmpty()) {
+            logger.info("Invalidating Redis cache 'activeEvents*'");
+            redisTemplate.delete(redisTemplate.keys("activeEvents*"));
+        }
+        return eventsToExpire.size();
+    }
 
-        // Step 2: activate events whose activeFrom time has arrived
-        List<LiveEvent> eventsToActivate = repository.findEventsToActivate("SCHEDULED", now);
+    @Transactional
+    public int activateNextBatch(ZonedDateTime now) {
+        List<LiveEvent> eventsToActivate = repository.findEventsToActivate("SCHEDULED", now, batchSize);
         for (LiveEvent event : eventsToActivate) {
             logger.info("Activating event: {} (ID: {})", event.getTitle(), event.getId());
             event.setStatus("ACTIVE");
@@ -56,13 +77,11 @@ public class EventActivationService {
             );
             // Using @TransactionalEventListener to fire RabbitMQ only after DB commit — avoids dual-write inconsistency
             applicationEventPublisher.publishEvent(new com.example.scheduler_worker.event.EventActivatedSpringEvent(payload));
-            cacheNeedsUpdate = true;
         }
-
-        // Step 3: if anything changed, evict all paginated cache entries so edge-api serves fresh data
-        if (cacheNeedsUpdate) {
+        if (!eventsToActivate.isEmpty()) {
             logger.info("Invalidating Redis cache 'activeEvents*'");
             redisTemplate.delete(redisTemplate.keys("activeEvents*"));
         }
+        return eventsToActivate.size();
     }
 }

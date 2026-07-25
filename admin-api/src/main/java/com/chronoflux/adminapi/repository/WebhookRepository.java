@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface WebhookRepository extends JpaRepository<Webhook, UUID> {
+    boolean existsBySchemaId(UUID schemaId);
 }
