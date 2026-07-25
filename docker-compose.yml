@@ -48,6 +48,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - SPRING_DATA_REDIS_HOST=redis
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - ADMIN_ALLOWED_EMAILS=${ADMIN_ALLOWED_EMAILS}
     ports:
       - "8080:8080"
     healthcheck:

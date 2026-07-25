@@ -28,6 +28,11 @@ public class GlobalExceptionHandler {
             .collect(Collectors.joining(", "));
         return ResponseEntity.badRequest().body(new ErrorResponse(errors));
     }
+
+    @ExceptionHandler(SecurityException.class)
+    public ResponseEntity<ErrorResponse> handleSecurityException(SecurityException ex) {
+        return ResponseEntity.status(403).body(new ErrorResponse(ex.getMessage()));
+    }
     
     public static class ErrorResponse {
         private String message;
