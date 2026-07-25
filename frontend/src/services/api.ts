@@ -50,7 +50,7 @@ export interface Event {
 
 export const getEvents = async (): Promise<Event[]> => {
   const response = await api.get('/api/admin/events');
-  return response.data;
+  return response.data.content || [];
 };
 
 export const getEventById = async (id: string): Promise<Event> => {
@@ -60,7 +60,7 @@ export const getEventById = async (id: string): Promise<Event> => {
 
 export const getActiveEvents = async (): Promise<Event[]> => {
   const response = await api.get('/api/v1/events/active');
-  return response.data;
+  return response.data.content || [];
 };
 
 export const createEvent = async (data: any): Promise<Event> => {

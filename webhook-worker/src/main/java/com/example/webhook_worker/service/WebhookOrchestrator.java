@@ -50,17 +50,18 @@ public class WebhookOrchestrator {
 
             httpClient.sendPayload(webhook.getTargetUrl(), event.getPayload())
                 .subscribe(
-                    v -> {
-                        logger.info("Delivery {} successful", delivery.getId());
-                        delivery.setStatus("SUCCESS");
-                        delivery.setResponseCode(200);
-                        deliveryRepository.save(delivery);
-                    },
+                    null, // onNext is never called for Mono<Void>
                     error -> {
                         logger.error("Delivery {} failed: {}", delivery.getId(), error.getMessage());
                         delivery.setStatus("FAILED");
                         deliveryRepository.save(delivery);
                         failedWebhookRepository.save(new com.example.webhook_worker.entity.FailedWebhook(event.getEventId(), event.getPayload(), error.getMessage()));
+                    },
+                    () -> { // onComplete
+                        logger.info("Delivery {} successful", delivery.getId());
+                        delivery.setStatus("SUCCESS");
+                        delivery.setResponseCode(200);
+                        deliveryRepository.save(delivery);
                     }
                 );
         }

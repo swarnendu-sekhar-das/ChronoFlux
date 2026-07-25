@@ -1,6 +1,7 @@
 package com.example.edge_api.service;
 
 import com.example.edge_api.dto.LiveEventResponseDTO;
+import com.example.edge_api.dto.PagedResponse;
 import com.example.edge_api.mapper.LiveEventMapper;
 import com.example.edge_api.repository.LiveEventRepository;
 import org.springframework.cache.annotation.Cacheable;
@@ -20,7 +21,7 @@ public class LiveEventService {
     }
 
     @Cacheable(value = "activeEvents", key = "'all_' + #pageable.pageNumber + '_' + #pageable.pageSize", sync = true)
-    public org.springframework.data.domain.Page<LiveEventResponseDTO> getActiveEvents(org.springframework.data.domain.Pageable pageable) {
-        return repository.findByStatusOrderByCreatedAtDesc("ACTIVE", pageable).map(mapper::toDTO);
+    public PagedResponse<LiveEventResponseDTO> getActiveEvents(org.springframework.data.domain.Pageable pageable) {
+        return new PagedResponse<>(repository.findByStatusOrderByCreatedAtDesc("ACTIVE", pageable).map(mapper::toDTO));
     }
 }
