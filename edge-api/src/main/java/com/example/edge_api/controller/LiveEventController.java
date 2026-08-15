@@ -1,16 +1,15 @@
 package com.example.edge_api.controller;
 
 import com.example.edge_api.dto.LiveEventResponseDTO;
-import com.example.edge_api.dto.PagedResponse;
 import com.example.edge_api.service.LiveEventService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/events")
@@ -23,12 +22,17 @@ public class LiveEventController {
         this.service = service;
     }
 
-    @Operation(summary = "Get active events", description = "Retrieves all currently active live events. This endpoint is heavily cached to withstand 'thundering herd' traffic from millions of game clients.")
+    @Operation(summary = "Get active events", description = "Returns all currently active live events.")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved active events")
     @GetMapping("/active")
-    public org.springframework.http.ResponseEntity<PagedResponse<LiveEventResponseDTO>> getActiveEvents(
-            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "0") int page,
-            @org.springframework.web.bind.annotation.RequestParam(defaultValue = "10") int size) {
-        return org.springframework.http.ResponseEntity.ok(service.getActiveEvents(org.springframework.data.domain.PageRequest.of(page, size)));
+    public ResponseEntity<List<LiveEventResponseDTO>> getActiveEvents() {
+        return ResponseEntity.ok(service.getActiveEvents());
+    }
+
+    @Operation(summary = "Get event by ID", description = "Returns a single event by its UUID. Cached individually in Redis.")
+    @ApiResponse(responseCode = "200", description = "Successfully retrieved event")
+    @GetMapping("/{id}")
+    public ResponseEntity<LiveEventResponseDTO> getEventById(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.getEventById(id));
     }
 }

@@ -24,9 +24,17 @@ public class LiveEvent {
     @jakarta.persistence.Column(name = "created_at")
     private java.time.Instant createdAt;
 
+    @jakarta.persistence.Column(name = "active_from")
+    private java.time.Instant activeFrom;
+
+    @jakarta.persistence.Column(name = "active_until")
+    private java.time.Instant activeUntil;
+
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public String getStatus() { return status; }
     public String getPayload() { return payload; }
     public java.time.Instant getCreatedAt() { return createdAt; }
+    public java.time.Instant getActiveFrom() { return activeFrom; }
+    public java.time.Instant getActiveUntil() { return activeUntil; }
 }

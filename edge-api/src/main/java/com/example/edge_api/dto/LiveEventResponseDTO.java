@@ -8,6 +8,8 @@ public class LiveEventResponseDTO {
     private String status;
     private String payload;
     private String createdAt;
+    private String activeFrom;
+    private String activeUntil;
 
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
@@ -19,4 +21,8 @@ public class LiveEventResponseDTO {
     public void setPayload(String payload) { this.payload = payload; }
     public String getCreatedAt() { return createdAt; }
     public void setCreatedAt(String createdAt) { this.createdAt = createdAt; }
+    public String getActiveFrom() { return activeFrom; }
+    public void setActiveFrom(String activeFrom) { this.activeFrom = activeFrom; }
+    public String getActiveUntil() { return activeUntil; }
+    public void setActiveUntil(String activeUntil) { this.activeUntil = activeUntil; }
 }

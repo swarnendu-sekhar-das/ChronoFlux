@@ -10,4 +10,8 @@ import java.util.List;
 public interface LiveEventMapper {
     LiveEventResponseDTO toDTO(LiveEvent liveEvent);
     List<LiveEventResponseDTO> toDTOList(List<LiveEvent> liveEvents);
+
+    default String map(java.time.Instant value) {
+        return value == null ? null : value.toString();
+    }
 }

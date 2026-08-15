@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootApplication
+@org.springframework.scheduling.annotation.EnableScheduling
 public class WebhookWorkerApplication {
 
 	public static void main(String[] args) {

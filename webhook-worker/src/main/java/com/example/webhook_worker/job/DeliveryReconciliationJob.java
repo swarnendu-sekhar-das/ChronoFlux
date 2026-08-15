@@ -1,0 +1,60 @@
+package com.example.webhook_worker.job;
+
+import com.example.webhook_worker.domain.WebhookDelivery;
+import com.example.webhook_worker.repository.WebhookDeliveryRepository;
+import com.example.webhook_worker.service.WebhookHttpClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+
+import java.time.ZonedDateTime;
+import java.util.List;
+
+@Component
+public class DeliveryReconciliationJob {
+
+    private static final Logger logger = LoggerFactory.getLogger(DeliveryReconciliationJob.class);
+    private static final int MAX_RETRIES = 5;
+
+    private final WebhookDeliveryRepository deliveryRepository;
+    private final WebhookHttpClient httpClient;
+
+    public DeliveryReconciliationJob(WebhookDeliveryRepository deliveryRepository,
+                                     WebhookHttpClient httpClient) {
+        this.deliveryRepository = deliveryRepository;
+        this.httpClient = httpClient;
+    }
+
+    @Scheduled(fixedRate = 300_000) // Every 5 minutes
+    public void reconcileZombieDeliveries() {
+        ZonedDateTime cutoff = ZonedDateTime.now().minusMinutes(5);
+        List<WebhookDelivery> zombies = deliveryRepository
+                .findByStatusInAndLastAttemptAtBefore(List.of("ATTEMPTING", "FAILED"), cutoff);
+
+        logger.info("Reconciliation sweep found {} zombie deliveries.", zombies.size());
+
+        for (WebhookDelivery delivery : zombies) {
+            if (delivery.getAttemptCount() >= MAX_RETRIES) {
+                delivery.setStatus("PERMANENTLY_FAILED");
+                delivery.setLastAttemptAt(ZonedDateTime.now());
+                deliveryRepository.save(delivery);
+                logger.warn("Delivery {} permanently failed after {} attempts.", delivery.getId(), MAX_RETRIES);
+                continue;
+            }
+
+            try {
+                httpClient.sendPayload(delivery.getTargetUrl(), delivery.getPayload());
+                delivery.setStatus("SUCCESS");
+                delivery.setResponseCode(200);
+            } catch (Exception e) {
+                delivery.setStatus("FAILED");
+                delivery.setFailureReason(e.getMessage());
+            }
+
+            delivery.setAttemptCount(delivery.getAttemptCount() + 1);
+            delivery.setLastAttemptAt(ZonedDateTime.now());
+            deliveryRepository.save(delivery);
+        }
+    }
+}

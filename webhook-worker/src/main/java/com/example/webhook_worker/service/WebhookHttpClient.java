@@ -1,13 +1,12 @@
 package com.example.webhook_worker.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
-import reactor.core.publisher.Mono;
 
 @Component
 public class WebhookHttpClient {
@@ -20,18 +19,22 @@ public class WebhookHttpClient {
         this.objectMapper = objectMapper;
     }
 
-    public Mono<Void> sendPayload(String targetUrl, String payload) {
+    /**
+     * Sends the payload to the target URL. BLOCKS until the response is received.
+     * This ensures the RabbitMQ consumer thread does not ACK until delivery completes.
+     */
+    public void sendPayload(String targetUrl, String payload) {
         try {
             JsonNode jsonNode = objectMapper.readTree(payload);
-            return webClient.post()
+            webClient.post()
                     .uri(targetUrl)
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(jsonNode)
                     .retrieve()
                     .toBodilessEntity()
-                    .then();
+                    .block(); // BLOCKING — thread pauses until HTTP response
         } catch (Exception e) {
-            return Mono.error(e);
+            throw new RuntimeException("Webhook delivery failed to " + targetUrl, e);
         }
     }
 }

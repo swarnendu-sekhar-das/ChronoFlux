@@ -68,7 +68,7 @@ export const getEventById = async (id: string): Promise<Event> => {
 
 export const getActiveEvents = async (): Promise<Event[]> => {
   const response = await api.get('/api/v1/events/active');
-  return response.data.content || [];
+  return Array.isArray(response.data) ? response.data : (response.data.content || []);
 };
 
 export const createEvent = async (data: any): Promise<Event> => {

@@ -9,6 +9,9 @@ spring:
     username: ${POSTGRES_USER:chronoflux}
     password: ${POSTGRES_PASSWORD:secret}
     driver-class-name: org.postgresql.Driver
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   jpa:
     hibernate:
       ddl-auto: validate
@@ -19,3 +22,14 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USER:guest}
     password: ${RABBITMQ_PASS:guest}
+
+resilience4j:
+  retry:
+    instances:
+      webhookRetry:
+        max-attempts: 3
+        wait-duration: 1s
+        retry-exceptions:
+          - java.net.SocketTimeoutException
+          - java.net.ConnectException
+          - org.springframework.web.reactive.function.client.WebClientRequestException
