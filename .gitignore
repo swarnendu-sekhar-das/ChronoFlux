@@ -34,15 +34,14 @@ target/
 
 k6-v0.49.0-linux-amd64.tar.gz
 k6-v0.49.0-linux-amd64/
-
-phase4/lockin/
 crash_course.md
-changesV2/architecture_deep_dive_v2.md
-changesV2/caching_strategy_comparison.md
-changesV2/end_to_end_flow.md
-changesV2/implementation_plan.md
-changesV2/interview_performance_report.md
-InterviewFeedback/implementation_plan_new.md
-InterviewFeedback/implementation_plan_proposed changes.md
-InterviewFeedback/Notes_260811_203242.PDF
-changesV2/implementation_guide.md
+changesV2/*
+InterviewFeedback/*
+Implementation_Plan.md
+project_analysis.md
+tech_stack_analysis.md
+.gitignore
+phase1/*
+phase2/*
+phase3/*
+phase4/*
