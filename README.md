@@ -1,64 +1,54 @@
-# ChronoFlux: Live Ops Engine
+# ChronoFlux
 
-ChronoFlux is a robust, microservice-based Live Operations (LiveOps) engine designed for modern game development. It allows game administrators to define dynamic JSON schemas, schedule live events (e.g., Flash Sales, Raid Boss spawns, Double XP weekends), and securely deliver event payloads to game clients and external webhooks.
+ChronoFlux is a robust, microservices-based Gaming Live-Ops Engine designed to manage real-time game operations, scheduled events, and webhooks at scale.
 
-## 🚀 Architecture
+## System Architecture
 
-ChronoFlux employs a modern, distributed microservice architecture to handle high throughput and ensure resilience.
+The project is built on a modern microservices architecture comprising several core components:
 
-```mermaid
-graph TD
-    %% Clients
-    Admin["Admin/Dev UI\n(React/Vite)"]
-    GameClients["Game Clients\n(Unity/Unreal/Simulator)"]
-    
-    %% Ingress
-    NGINX["NGINX Reverse Proxy\nAPI Gateway"]
-    
-    %% Services
-    AdminAPI["Admin API\n(Spring Boot)"]
-    EdgeAPI["Edge API\n(Spring Boot)"]
-    Scheduler["Scheduler Worker\n(Spring Boot + Polling)"]
-    Webhook["Webhook Worker\n(Spring Boot + RabbitMQ)"]
-    
-    %% Data Stores
-    PostgreSQL[("PostgreSQL\nPrimary DB")]
-    Redis[("Redis\nCache")]
-    RabbitMQ[["RabbitMQ\nMessage Broker"]]
-    
-    %% External
-    ExtServer["Mock Game Server\n/ External Webhooks"]
+- **Admin API**: A Spring Boot backend powering the admin dashboard. It handles system configurations, management, and authentication via Google OAuth.
+- **Edge API**: A high-performance, player-facing API designed for low latency.
+- **Scheduler Worker**: A background service that manages scheduled events, pushing tasks to the message broker for asynchronous processing.
+- **Webhook Worker**: A worker that listens for events from the message broker and dispatches reliable webhooks to external services or game servers.
+- **Mock Game Server**: A testing utility that simulates external game servers for end-to-end integration testing.
+- **Frontend**: A Single Page Application (SPA) providing a rich user interface for administrators to monitor and manage the live-ops engine.
 
-    %% Connections
-    Admin -->|/api/admin| NGINX
-    GameClients -->|/api/v1| NGINX
-    
-    NGINX --> AdminAPI
-    NGINX --> EdgeAPI
-    
-    AdminAPI --> PostgreSQL
-    AdminAPI -.->|Invalidates Cache| Redis
-    
-    EdgeAPI --> Redis
-    EdgeAPI --> PostgreSQL
-    
-    Scheduler --> PostgreSQL
-    Scheduler -.->|Warms Cache| Redis
-    Scheduler -->|Triggers Webhooks| RabbitMQ
-    
-    RabbitMQ --> Webhook
-    Webhook --> PostgreSQL
-    Webhook --> ExtServer
-```
+## Tech Stack
 
-## 🛠️ Technology Stack
+### Backend
+- **Language**: Java 21
+- **Framework**: Spring Boot 3.4.1
+- **Database Migrations**: Flyway
+- **Data Mapping**: MapStruct
+- **Testing**: Testcontainers (Integration)
+- **Build Tool**: Maven
 
-| Component | Technology | Purpose |
-| --- | --- | --- |
-| **Frontend** | React + Vite, Tailwind CSS, TanStack Query | Admin Control Room & Game Client Simulator |
-| **Backend Core** | Java 21, Spring Boot 3.4 | Core microservices |
-| **Database** | PostgreSQL | Relational data & JSONB for dynamic payloads |
-| **Caching** | Redis & Nginx | Proxy caching and cache-aside for Edge API to survive thundering herds |
-| **Message Broker** | RabbitMQ | Async webhook delivery with delivery attempt logging |
-| **Containerization**| Docker & Docker Compose | Local development and deployment orchestration |
-| **Testing** | k6, Testcontainers, JUnit | Load testing and integration testing |
+### Infrastructure
+- **Relational Database**: PostgreSQL 16
+- **Caching & KV Store**: Redis 7
+- **Message Broker**: RabbitMQ 3
+- **Containerization**: Docker & Docker Compose
+
+### Frontend
+- **Environment**: Node 24
+- **Build Tool**: Vite
+- **Web Server**: Nginx (for serving the production build)
+
+## Getting Started
+
+### Prerequisites
+- Docker and Docker Compose installed on your local machine.
+- Available ports for the services: 5432 (Postgres), 6379 (Redis), 5672/15672 (RabbitMQ), 8080 (Admin API), 8081 (Edge API), 9090 (Mock Game Server), and 80 (Frontend).
+
+### Deployment
+1. Ensure the `.env` file is properly configured with your PostgreSQL credentials and Google OAuth Client ID.
+2. Run the following command from the root directory to build and start the entire suite of services:
+   ```bash
+   docker-compose up -d --build
+   ```
+3. The services will be accessible at:
+   - Frontend: `http://localhost`
+   - Admin API Health: `http://localhost:8080/api/admin/actuator/health`
+   - Edge API Health: `http://localhost:8081/api/v1/actuator/health`
+   - RabbitMQ Management: `http://localhost:15672` (guest/guest)
+   - Mock Game Server: `http://localhost:9090`
