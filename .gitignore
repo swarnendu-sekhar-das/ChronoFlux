@@ -1,6 +1,4 @@
 # Custom Files
-notes.md
-walkthrough.md
 logs
 e2e_test.sh
 
@@ -34,14 +32,6 @@ target/
 
 k6-v0.49.0-linux-amd64.tar.gz
 k6-v0.49.0-linux-amd64/
-crash_course.md
-changesV2/*
-InterviewFeedback/*
-Implementation_Plan.md
-project_analysis.md
-tech_stack_analysis.md
+notes/*
 .gitignore
-phase1/*
-phase2/*
-phase3/*
-phase4/*
+
