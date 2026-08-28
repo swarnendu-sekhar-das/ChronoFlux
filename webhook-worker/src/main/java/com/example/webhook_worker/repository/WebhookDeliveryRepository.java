@@ -7,5 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface WebhookDeliveryRepository extends JpaRepository<WebhookDelivery, UUID> {
-    List<WebhookDelivery> findByStatusInAndLastAttemptAtBefore(List<String> statuses, ZonedDateTime cutoff);
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM webhook_deliveries WHERE status IN :statuses AND last_attempt_at < :cutoff FOR UPDATE SKIP LOCKED", nativeQuery = true)
+    List<WebhookDelivery> findZombiesForReconciliation(@org.springframework.data.repository.query.Param("statuses") List<String> statuses, @org.springframework.data.repository.query.Param("cutoff") ZonedDateTime cutoff);
 }

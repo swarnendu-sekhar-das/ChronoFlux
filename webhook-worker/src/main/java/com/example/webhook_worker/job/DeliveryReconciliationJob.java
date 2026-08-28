@@ -20,17 +20,35 @@ public class DeliveryReconciliationJob {
     private final WebhookDeliveryRepository deliveryRepository;
     private final WebhookHttpClient httpClient;
 
+    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+
     public DeliveryReconciliationJob(WebhookDeliveryRepository deliveryRepository,
-                                     WebhookHttpClient httpClient) {
+                                     WebhookHttpClient httpClient,
+                                     org.springframework.transaction.support.TransactionTemplate transactionTemplate) {
         this.deliveryRepository = deliveryRepository;
         this.httpClient = httpClient;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Scheduled(fixedRate = 300_000) // Every 5 minutes
     public void reconcileZombieDeliveries() {
         ZonedDateTime cutoff = ZonedDateTime.now().minusMinutes(5);
-        List<WebhookDelivery> zombies = deliveryRepository
-                .findByStatusInAndLastAttemptAtBefore(List.of("ATTEMPTING", "FAILED"), cutoff);
+        
+        List<WebhookDelivery> zombies = transactionTemplate.execute(status -> {
+            List<WebhookDelivery> found = deliveryRepository
+                .findZombiesForReconciliation(List.of("ATTEMPTING", "FAILED"), cutoff);
+            for (WebhookDelivery delivery : found) {
+                delivery.setStatus("RETRYING");
+            }
+            if (!found.isEmpty()) {
+                deliveryRepository.saveAll(found);
+            }
+            return found;
+        });
+
+        if (zombies == null || zombies.isEmpty()) {
+            return;
+        }
 
         logger.info("Reconciliation sweep found {} zombie deliveries.", zombies.size());
 
