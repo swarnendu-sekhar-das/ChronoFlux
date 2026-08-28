@@ -35,10 +35,7 @@ public class LiveEventService {
         this.redisTemplate = redisTemplate;
     }
 
-    private void invalidateCache() {
-        // Evict all paginated cache keys (e.g., all_0_10, all_1_10) so edge-api serves fresh data
-        redisTemplate.delete(redisTemplate.keys("activeEvents*"));
-    }
+
 
     private void validatePayloadAgainstSchema(UUID schemaId, Map<String, Object> payload) {
         if (schemaId == null || payload == null) return;
@@ -71,7 +68,6 @@ public class LiveEventService {
         }
         LiveEvent event = eventMapper.toEntity(createDTO);
         LiveEvent savedEvent = eventRepository.save(event);
-        invalidateCache();
         return eventMapper.toDTO(savedEvent);
     }
 
@@ -95,8 +91,16 @@ public class LiveEventService {
             event.setActiveUntil(updateDTO.getActiveUntil());
             
             LiveEvent updatedEvent = eventRepository.save(event);
-            invalidateCache();
-            return eventMapper.toDTO(updatedEvent);
+            LiveEventDTO dto = eventMapper.toDTO(updatedEvent);
+            if (updatedEvent.getStatus() == EventStatus.ACTIVE) {
+                try {
+                    String json = objectMapper.writeValueAsString(dto);
+                    redisTemplate.opsForValue().set("events::" + updatedEvent.getId(), json);
+                } catch (Exception e) {
+                    // Log error but don't fail the transaction
+                }
+            }
+            return dto;
         });
     }
 
@@ -105,8 +109,11 @@ public class LiveEventService {
         return eventRepository.findById(id).map(event -> {
             event.setStatus(EventStatus.ARCHIVED);
             LiveEvent archivedEvent = eventRepository.save(event);
-            invalidateCache();
-            return eventMapper.toDTO(archivedEvent);
+            LiveEventDTO dto = eventMapper.toDTO(archivedEvent);
+            // If it was active and we archived it, remove from cache
+            redisTemplate.opsForSet().remove("active_event_ids", archivedEvent.getId().toString());
+            redisTemplate.delete("events::" + archivedEvent.getId());
+            return dto;
         });
     }
 }
