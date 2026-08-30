@@ -86,6 +86,9 @@ public class LiveEventService {
     @Transactional
     public Optional<LiveEventDTO> updateEvent(UUID id, LiveEventUpdateDTO updateDTO) {
         return eventRepository.findById(id).map(event -> {
+            if (event.getStatus() == EventStatus.ACTIVE) {
+                throw new IllegalArgumentException("Cannot update an ACTIVE event. Please archive and create a new version.");
+            }
             if (event.getStatus() != EventStatus.ACTIVE && updateDTO.getStatus() == EventStatus.ACTIVE) {
                 throw new IllegalArgumentException("Direct transition to ACTIVE is forbidden. Set status to SCHEDULED with an activeFrom timestamp.");
             }
@@ -100,14 +103,7 @@ public class LiveEventService {
             
             LiveEvent updatedEvent = eventRepository.save(event);
             LiveEventDTO dto = eventMapper.toDTO(updatedEvent);
-            if (updatedEvent.getStatus() == EventStatus.ACTIVE) {
-                try {
-                    String json = objectMapper.writeValueAsString(dto);
-                    redisTemplate.opsForValue().set("events::" + updatedEvent.getId(), json);
-                } catch (Exception e) {
-                    // Log error but don't fail the transaction
-                }
-            }
+
             return dto;
         });
     }

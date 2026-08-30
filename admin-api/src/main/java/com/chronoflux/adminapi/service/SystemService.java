@@ -6,6 +6,8 @@ import com.chronoflux.adminapi.repository.UserRepository;
 import com.chronoflux.adminapi.repository.WebhookDeliveryRepository;
 import org.springframework.stereotype.Service;
 
+import com.chronoflux.adminapi.dto.SystemStatusDTO;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,17 +25,11 @@ public class SystemService {
         this.userRepository = userRepository;
     }
 
-    public Map<String, Object> getSystemStatus() {
+    public SystemStatusDTO getSystemStatus() {
         long activeEvents = liveEventRepository.countByStatus(EventStatus.ACTIVE);
         long pendingWebhooks = webhookDeliveryRepository.countByStatus("PENDING");
         long totalUsers = userRepository.count();
 
-        Map<String, Object> status = new HashMap<>();
-        status.put("activeEvents", activeEvents);
-        status.put("pendingWebhooks", pendingWebhooks);
-        status.put("totalUsers", totalUsers);
-        status.put("status", "HEALTHY");
-
-        return status;
+        return new SystemStatusDTO(activeEvents, pendingWebhooks, totalUsers, "HEALTHY");
     }
 }
