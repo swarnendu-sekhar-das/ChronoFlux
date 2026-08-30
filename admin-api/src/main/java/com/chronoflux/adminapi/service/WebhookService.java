@@ -3,10 +3,13 @@ package com.chronoflux.adminapi.service;
 import com.chronoflux.adminapi.dto.WebhookCreateDTO;
 import com.chronoflux.adminapi.dto.WebhookDTO;
 import com.chronoflux.adminapi.dto.WebhookDeliveryDTO;
+import com.chronoflux.adminapi.dto.WebhookToggleDTO;
 import com.chronoflux.adminapi.mapper.WebhookMapper;
 import com.chronoflux.adminapi.model.Webhook;
 import com.chronoflux.adminapi.repository.WebhookDeliveryRepository;
 import com.chronoflux.adminapi.repository.WebhookRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
@@ -27,8 +30,8 @@ public class WebhookService {
         this.webhookMapper = webhookMapper;
     }
 
-    public List<WebhookDTO> getWebhooks() {
-        return webhookMapper.toDTOList(webhookRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")));
+    public Page<WebhookDTO> getWebhooks(Pageable pageable) {
+        return webhookRepository.findAll(pageable).map(webhookMapper::toDTO);
     }
 
     public WebhookDTO createWebhook(WebhookCreateDTO dto) {
@@ -37,14 +40,14 @@ public class WebhookService {
         return webhookMapper.toDTO(webhookRepository.save(webhook));
     }
 
-    public Optional<WebhookDTO> toggleWebhook(UUID id, Boolean isActivePayload) {
+    public Optional<WebhookDTO> toggleWebhook(UUID id, WebhookToggleDTO dto) {
         return webhookRepository.findById(id).map(w -> {
-            w.setIsActive(isActivePayload != null ? isActivePayload : !w.getIsActive());
+            w.setIsActive(dto.getIsActive());
             return webhookMapper.toDTO(webhookRepository.save(w));
         });
     }
 
-    public List<WebhookDeliveryDTO> getWebhookDeliveries() {
-        return webhookMapper.toDeliveryDTOList(webhookDeliveryRepository.findTop50ByOrderByCreatedAtDesc());
+    public Page<WebhookDeliveryDTO> getWebhookDeliveries(Pageable pageable) {
+        return webhookDeliveryRepository.findAll(pageable).map(webhookMapper::toDeliveryDTO);
     }
 }
