@@ -12,6 +12,9 @@ import com.chronoflux.adminapi.repository.LiveEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.List;
 import java.util.Map;
@@ -25,9 +28,9 @@ public class LiveEventService {
     private final EventSchemaRepository schemaRepository;
     private final LiveEventMapper eventMapper;
     private final ObjectMapper objectMapper;
-    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
+    private final StringRedisTemplate redisTemplate;
 
-    public LiveEventService(LiveEventRepository eventRepository, EventSchemaRepository schemaRepository, LiveEventMapper eventMapper, ObjectMapper objectMapper, org.springframework.data.redis.core.StringRedisTemplate redisTemplate) {
+    public LiveEventService(LiveEventRepository eventRepository, EventSchemaRepository schemaRepository, LiveEventMapper eventMapper, ObjectMapper objectMapper, StringRedisTemplate redisTemplate) {
         this.eventRepository = eventRepository;
         this.schemaRepository = schemaRepository;
         this.eventMapper = eventMapper;
@@ -51,7 +54,7 @@ public class LiveEventService {
         }
     }
 
-    public org.springframework.data.domain.Page<LiveEventDTO> getAllEvents(org.springframework.data.domain.Pageable pageable, boolean includeArchived) {
+    public Page<LiveEventDTO> getAllEvents(Pageable pageable, boolean includeArchived) {
         if (includeArchived) {
             return eventRepository.findAll(pageable).map(eventMapper::toDTO);
         }

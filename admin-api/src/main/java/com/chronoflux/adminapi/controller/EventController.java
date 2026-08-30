@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 import java.util.UUID;
@@ -30,11 +32,11 @@ public class EventController {
     @Operation(summary = "Get all events", description = "Retrieves a paginated list of all live events")
     @ApiResponse(responseCode = "200", description = "Successfully retrieved list")
     @GetMapping
-    public ResponseEntity<org.springframework.data.domain.Page<LiveEventDTO>> getAllEvents(
+    public ResponseEntity<Page<LiveEventDTO>> getAllEvents(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "false") boolean includeArchived) {
-        return ResponseEntity.ok(eventService.getAllEvents(org.springframework.data.domain.PageRequest.of(page, size), includeArchived));
+        return ResponseEntity.ok(eventService.getAllEvents(PageRequest.of(page, size), includeArchived));
     }
 
     @Operation(summary = "Create a new event", description = "Creates a new live event based on a schema")
