@@ -9,5 +9,4 @@ import java.util.UUID;
 @Repository
 public interface WebhookDeliveryRepository extends JpaRepository<WebhookDelivery, UUID> {
     long countByStatus(String status);
-    java.util.List<WebhookDelivery> findTop50ByOrderByCreatedAtDesc();
 }
