@@ -11,7 +11,7 @@ export default function Dashboard() {
 
   const { data: deliveries, isLoading: deliveriesLoading } = useQuery({
     queryKey: ['webhookDeliveries'],
-    queryFn: getWebhookDeliveries,
+    queryFn: () => getWebhookDeliveries(0, 50),
     refetchInterval: 5000, // Poll every 5s
   });
 
@@ -84,9 +84,9 @@ export default function Dashboard() {
         <div className="p-0 max-h-[500px] overflow-y-auto">
           {deliveriesLoading ? (
             <div className="p-8 text-center text-slate-500">Loading activity...</div>
-          ) : deliveries && deliveries.length > 0 ? (
+          ) : deliveries?.content && deliveries.content.length > 0 ? (
             <ul className="divide-y divide-slate-800/50">
-              {deliveries.slice(0, 50).map((d) => (
+              {deliveries.content.slice(0, 50).map((d: any) => (
                 <li key={d.id} className="p-4 hover:bg-slate-800/30 transition-colors flex items-start gap-4">
                   <div className={`mt-1 p-1.5 rounded-full ${
                     d.status === 'SUCCESS' ? 'bg-emerald-500/20 text-emerald-400' :

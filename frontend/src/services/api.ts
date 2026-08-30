@@ -27,6 +27,14 @@ export interface Schema {
   createdAt: string;
 }
 
+export interface PageResponse<T> {
+  content: T[];
+  totalPages: number;
+  totalElements: number;
+  number: number;
+  size: number;
+}
+
 export const getSchemas = async (includeArchived?: boolean | any): Promise<Schema[]> => {
   const include = typeof includeArchived === 'boolean' ? includeArchived : false;
   const response = await api.get('/api/admin/schemas', { params: { includeArchived: include } });
@@ -55,10 +63,10 @@ export interface Event {
   createdAt: string;
 }
 
-export const getEvents = async (includeArchived?: boolean | any): Promise<Event[]> => {
+export const getEvents = async (includeArchived?: boolean | any, page = 0, size = 10): Promise<PageResponse<Event>> => {
   const include = typeof includeArchived === 'boolean' ? includeArchived : false;
-  const response = await api.get('/api/admin/events', { params: { includeArchived: include } });
-  return response.data.content || [];
+  const response = await api.get('/api/admin/events', { params: { includeArchived: include, page, size } });
+  return response.data;
 };
 
 export const getEventById = async (id: string): Promise<Event> => {
@@ -105,8 +113,8 @@ export interface WebhookDelivery {
   createdAt: string;
 }
 
-export const getWebhooks = async (): Promise<Webhook[]> => {
-  const response = await api.get('/api/admin/webhooks');
+export const getWebhooks = async (page = 0, size = 10): Promise<PageResponse<Webhook>> => {
+  const response = await api.get('/api/admin/webhooks', { params: { page, size } });
   return response.data;
 };
 
@@ -120,8 +128,8 @@ export const toggleWebhook = async (id: string, isActive: boolean): Promise<Webh
   return response.data;
 };
 
-export const getWebhookDeliveries = async (): Promise<WebhookDelivery[]> => {
-  const response = await api.get('/api/admin/webhooks/deliveries');
+export const getWebhookDeliveries = async (page = 0, size = 10): Promise<PageResponse<WebhookDelivery>> => {
+  const response = await api.get('/api/admin/webhooks/deliveries', { params: { page, size } });
   return response.data;
 };
 

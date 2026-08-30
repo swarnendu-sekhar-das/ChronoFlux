@@ -20,11 +20,14 @@ export default function Events() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showArchived, setShowArchived] = useState(false);
+  const [page, setPage] = useState(0);
 
-  const { data: events, isLoading, error } = useQuery({
-    queryKey: ['events', showArchived],
-    queryFn: () => getEvents(showArchived),
+  const { data: pageData, isLoading, error } = useQuery({
+    queryKey: ['events', showArchived, page],
+    queryFn: () => getEvents(showArchived, page, 10),
   });
+
+  const events = pageData?.content;
 
   const archiveMutation = useMutation({
     mutationFn: archiveEvent,
@@ -136,6 +139,25 @@ export default function Events() {
               )}
             </tbody>
           </table>
+        )}
+        {pageData && pageData.totalPages > 0 && (
+          <div className="flex justify-between items-center px-6 py-4 border-t border-slate-800">
+            <button 
+              disabled={pageData.number === 0} 
+              onClick={() => setPage(p => p - 1)}
+              className="text-emerald-500 disabled:opacity-50 text-sm font-medium hover:text-emerald-400 transition-colors">
+              &larr; Previous
+            </button>
+            <span className="text-slate-400 text-sm">
+              Page {pageData.number + 1} of {pageData.totalPages}
+            </span>
+            <button 
+              disabled={pageData.number >= pageData.totalPages - 1} 
+              onClick={() => setPage(p => p + 1)}
+              className="text-emerald-500 disabled:opacity-50 text-sm font-medium hover:text-emerald-400 transition-colors">
+              Next &rarr;
+            </button>
+          </div>
         )}
       </div>
     </div>

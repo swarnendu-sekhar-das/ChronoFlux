@@ -16,21 +16,28 @@ export default function Webhooks() {
   const [targetUrl, setTargetUrl] = useState('');
   const [schemaId, setSchemaId] = useState('');
 
-  const { data: webhooks, isLoading: isLoadingWebhooks } = useQuery({
-    queryKey: ['webhooks'],
-    queryFn: getWebhooks
+  const [page, setPage] = useState(0);
+  const [deliveryPage, setDeliveryPage] = useState(0);
+
+  const { data: webhooksPageData, isLoading: isLoadingWebhooks } = useQuery({
+    queryKey: ['webhooks', page],
+    queryFn: () => getWebhooks(page, 10)
   });
+
+  const webhooks = webhooksPageData?.content;
 
   const { data: schemas } = useQuery({
     queryKey: ['schemas'],
     queryFn: getSchemas
   });
 
-  const { data: deliveries, isLoading: isLoadingDeliveries } = useQuery({
-    queryKey: ['webhookDeliveries'],
-    queryFn: getWebhookDeliveries,
+  const { data: deliveriesPageData, isLoading: isLoadingDeliveries } = useQuery({
+    queryKey: ['webhookDeliveries', deliveryPage],
+    queryFn: () => getWebhookDeliveries(deliveryPage, 10),
     refetchInterval: 5000 // Poll deliveries to see results
   });
+
+  const deliveries = deliveriesPageData?.content;
 
   const { toast } = useToast();
 
@@ -136,6 +143,25 @@ export default function Webhooks() {
                 </tbody>
               </table>
             )}
+            {webhooksPageData && webhooksPageData.totalPages > 0 && (
+              <div className="flex justify-between items-center px-6 py-4 border-t border-slate-800">
+                <button 
+                  disabled={webhooksPageData.number === 0} 
+                  onClick={() => setPage(p => p - 1)}
+                  className="text-emerald-500 disabled:opacity-50 text-sm font-medium hover:text-emerald-400 transition-colors">
+                  &larr; Previous
+                </button>
+                <span className="text-slate-400 text-sm">
+                  Page {webhooksPageData.number + 1} of {webhooksPageData.totalPages}
+                </span>
+                <button 
+                  disabled={webhooksPageData.number >= webhooksPageData.totalPages - 1} 
+                  onClick={() => setPage(p => p + 1)}
+                  className="text-emerald-500 disabled:opacity-50 text-sm font-medium hover:text-emerald-400 transition-colors">
+                  Next &rarr;
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -186,6 +212,25 @@ export default function Webhooks() {
                   ))}
                 </tbody>
               </table>
+            )}
+            {deliveriesPageData && deliveriesPageData.totalPages > 0 && (
+              <div className="flex justify-between items-center px-6 py-4 border-t border-slate-800">
+                <button 
+                  disabled={deliveriesPageData.number === 0} 
+                  onClick={() => setDeliveryPage(p => p - 1)}
+                  className="text-emerald-500 disabled:opacity-50 text-sm font-medium hover:text-emerald-400 transition-colors">
+                  &larr; Previous
+                </button>
+                <span className="text-slate-400 text-sm">
+                  Page {deliveriesPageData.number + 1} of {deliveriesPageData.totalPages}
+                </span>
+                <button 
+                  disabled={deliveriesPageData.number >= deliveriesPageData.totalPages - 1} 
+                  onClick={() => setDeliveryPage(p => p + 1)}
+                  className="text-emerald-500 disabled:opacity-50 text-sm font-medium hover:text-emerald-400 transition-colors">
+                  Next &rarr;
+                </button>
+              </div>
             )}
           </div>
         </div>
