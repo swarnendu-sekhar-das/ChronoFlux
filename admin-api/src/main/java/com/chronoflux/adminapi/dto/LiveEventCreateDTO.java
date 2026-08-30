@@ -1,13 +1,14 @@
 package com.chronoflux.adminapi.dto;
 
 import com.chronoflux.adminapi.model.EventStatus;
+import jakarta.validation.constraints.NotBlank;
 
 import java.time.Instant;
 import java.util.Map;
 
 public class LiveEventCreateDTO {
     private EventSchemaIdDTO schema;
-    @jakarta.validation.constraints.NotBlank(message = "Title cannot be empty")
+    @NotBlank(message = "Title cannot be empty")
     private String title;
     private EventStatus status;
     private Map<String, Object> payload;

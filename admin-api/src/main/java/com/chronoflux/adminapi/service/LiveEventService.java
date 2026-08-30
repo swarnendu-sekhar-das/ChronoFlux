@@ -12,6 +12,10 @@ import com.chronoflux.adminapi.repository.LiveEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.ValidationMessage;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -19,6 +23,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -45,9 +50,9 @@ public class LiveEventService {
         EventSchema schema = schemaRepository.findById(schemaId)
                 .orElseThrow(() -> new IllegalArgumentException("Event schema not found with ID: " + schemaId));
 
-        com.networknt.schema.JsonSchemaFactory factory = com.networknt.schema.JsonSchemaFactory.getInstance(com.networknt.schema.SpecVersion.VersionFlag.V7);
-        com.networknt.schema.JsonSchema jsonSchema = factory.getSchema(objectMapper.valueToTree(schema.getSchemaDefinition()));
-        java.util.Set<com.networknt.schema.ValidationMessage> errors = jsonSchema.validate(objectMapper.valueToTree(payload));
+        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
+        JsonSchema jsonSchema = factory.getSchema(objectMapper.valueToTree(schema.getSchemaDefinition()));
+        Set<ValidationMessage> errors = jsonSchema.validate(objectMapper.valueToTree(payload));
 
         if (!errors.isEmpty()) {
             throw new IllegalArgumentException("JSON Schema validation failed for schema '" + schema.getName() + "': " + errors);

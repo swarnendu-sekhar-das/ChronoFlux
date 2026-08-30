@@ -8,11 +8,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.UUID;
@@ -45,7 +45,7 @@ public class EventController {
             @ApiResponse(responseCode = "400", description = "Invalid payload or schema")
     })
     @PostMapping
-    public ResponseEntity<LiveEventDTO> createEvent(@jakarta.validation.Valid @RequestBody LiveEventCreateDTO event) {
+    public ResponseEntity<LiveEventDTO> createEvent(@Valid @RequestBody LiveEventCreateDTO event) {
         LiveEventDTO savedEvent = eventService.createEvent(event);
         return new ResponseEntity<>(savedEvent, HttpStatus.CREATED);
     }
@@ -68,7 +68,7 @@ public class EventController {
             @ApiResponse(responseCode = "404", description = "Event not found")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<LiveEventDTO> updateEvent(@PathVariable UUID id, @jakarta.validation.Valid @RequestBody LiveEventUpdateDTO eventDetails) {
+    public ResponseEntity<LiveEventDTO> updateEvent(@PathVariable UUID id, @Valid @RequestBody LiveEventUpdateDTO eventDetails) {
         Optional<LiveEventDTO> updatedEvent = eventService.updateEvent(id, eventDetails);
         return updatedEvent.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

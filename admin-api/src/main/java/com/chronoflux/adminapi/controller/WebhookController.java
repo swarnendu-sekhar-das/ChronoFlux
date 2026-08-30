@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ public class WebhookController {
     @Operation(summary = "Create a webhook", description = "Registers a new webhook for an event schema")
     @ApiResponse(responseCode = "200", description = "Webhook successfully created")
     @PostMapping
-    public ResponseEntity<WebhookDTO> createWebhook(@jakarta.validation.Valid @RequestBody WebhookCreateDTO dto) {
+    public ResponseEntity<WebhookDTO> createWebhook(@Valid @RequestBody WebhookCreateDTO dto) {
         return ResponseEntity.ok(webhookService.createWebhook(dto));
     }
 
