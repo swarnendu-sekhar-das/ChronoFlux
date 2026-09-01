@@ -3,6 +3,7 @@ package com.example.scheduler_worker.job;
 import com.example.scheduler_worker.service.EventActivationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +13,7 @@ public class EventActivationJob {
     private static final Logger logger = LoggerFactory.getLogger(EventActivationJob.class);
     private final EventActivationService activationService;
 
-    @org.springframework.beans.factory.annotation.Value("${scheduler.max-jitter-ms:3000}")
+    @Value("${scheduler.max-jitter-ms:3000}")
     private long maxJitterMs;
 
     public EventActivationJob(EventActivationService activationService) {

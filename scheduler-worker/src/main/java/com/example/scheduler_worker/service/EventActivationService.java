@@ -2,10 +2,14 @@ package com.example.scheduler_worker.service;
 
 import com.example.scheduler_worker.domain.LiveEvent;
 import com.example.scheduler_worker.dto.LiveEventActivatedEvent;
+import com.example.scheduler_worker.event.EventActivatedSpringEvent;
 import com.example.scheduler_worker.repository.LiveEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,20 +25,20 @@ public class EventActivationService {
     private static final Logger logger = LoggerFactory.getLogger(EventActivationService.class);
 
     private final LiveEventRepository repository;
-    private final org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
+    private final ApplicationEventPublisher applicationEventPublisher;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
-    @org.springframework.beans.factory.annotation.Value("${scheduler.batch-size:50}")
+    @Value("${scheduler.batch-size:50}")
     private int batchSize;
 
-    private final org.springframework.beans.factory.ObjectProvider<EventActivationService> selfProvider;
+    private final ObjectProvider<EventActivationService> selfProvider;
 
     public EventActivationService(LiveEventRepository repository, 
-                                  org.springframework.context.ApplicationEventPublisher applicationEventPublisher, 
+                                  ApplicationEventPublisher applicationEventPublisher, 
                                   StringRedisTemplate redisTemplate, 
                                   ObjectMapper objectMapper,
-                                  org.springframework.beans.factory.ObjectProvider<EventActivationService> selfProvider) {
+                                  ObjectProvider<EventActivationService> selfProvider) {
         this.repository = repository;
         this.applicationEventPublisher = applicationEventPublisher;
         this.redisTemplate = redisTemplate;
@@ -94,7 +98,7 @@ public class EventActivationService {
                     event.getPayload()
             );
             // Using @TransactionalEventListener to fire RabbitMQ only after DB commit
-            applicationEventPublisher.publishEvent(new com.example.scheduler_worker.event.EventActivatedSpringEvent(payload));
+            applicationEventPublisher.publishEvent(new EventActivatedSpringEvent(payload));
         }
         return eventsToActivate.size();
     }
