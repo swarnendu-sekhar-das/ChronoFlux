@@ -2,7 +2,9 @@ package com.example.scheduler_worker.service;
 
 import com.example.scheduler_worker.domain.LiveEvent;
 import com.example.scheduler_worker.dto.LiveEventActivatedEvent;
+import com.example.scheduler_worker.dto.LiveEventExpiredEvent;
 import com.example.scheduler_worker.event.EventActivatedSpringEvent;
+import com.example.scheduler_worker.event.EventExpiredSpringEvent;
 import com.example.scheduler_worker.repository.LiveEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
@@ -70,6 +72,9 @@ public class EventActivationService {
             // Granular Cache Removal
             redisTemplate.opsForSet().remove("active_event_ids", event.getId().toString());
             redisTemplate.delete("events::" + event.getId());
+            
+            LiveEventExpiredEvent payload = new LiveEventExpiredEvent(event.getId(), event.getSchemaId());
+            applicationEventPublisher.publishEvent(new EventExpiredSpringEvent(payload));
         }
         return eventsToExpire.size();
     }
