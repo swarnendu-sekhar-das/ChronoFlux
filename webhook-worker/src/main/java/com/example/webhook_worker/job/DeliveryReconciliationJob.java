@@ -1,5 +1,6 @@
 package com.example.webhook_worker.job;
 
+import org.springframework.transaction.support.TransactionTemplate;
 import com.example.webhook_worker.domain.WebhookDelivery;
 import com.example.webhook_worker.repository.WebhookDeliveryRepository;
 import com.example.webhook_worker.service.WebhookHttpClient;
@@ -20,11 +21,10 @@ public class DeliveryReconciliationJob {
     private final WebhookDeliveryRepository deliveryRepository;
     private final WebhookHttpClient httpClient;
 
-    private final org.springframework.transaction.support.TransactionTemplate transactionTemplate;
+    private final TransactionTemplate transactionTemplate;
 
     public DeliveryReconciliationJob(WebhookDeliveryRepository deliveryRepository,
-                                     WebhookHttpClient httpClient,
-                                     org.springframework.transaction.support.TransactionTemplate transactionTemplate) {
+                                     WebhookHttpClient httpClient, TransactionTemplate transactionTemplate) {
         this.deliveryRepository = deliveryRepository;
         this.httpClient = httpClient;
         this.transactionTemplate = transactionTemplate;

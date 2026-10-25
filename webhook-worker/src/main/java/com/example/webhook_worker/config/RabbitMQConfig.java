@@ -4,6 +4,14 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.DefaultClassMapper;
+import java.util.HashMap;
+import java.util.Map;
+import com.example.webhook_worker.dto.LiveEventActivatedEvent;
+import com.example.webhook_worker.dto.LiveEventExpiredEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -22,7 +30,7 @@ public class RabbitMQConfig {
 
     @Bean
     public Queue webhookQueue() {
-        return org.springframework.amqp.core.QueueBuilder.durable(QUEUE_NAME).build();
+        return QueueBuilder.durable(QUEUE_NAME).build();
     }
 
     @Bean
@@ -36,18 +44,16 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public org.springframework.amqp.support.converter.MessageConverter jsonMessageConverter() {
-        org.springframework.amqp.support.converter.Jackson2JsonMessageConverter converter = 
-                new org.springframework.amqp.support.converter.Jackson2JsonMessageConverter();
+    public MessageConverter jsonMessageConverter() {
+        Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter();
         
-        org.springframework.amqp.support.converter.DefaultClassMapper classMapper = 
-                new org.springframework.amqp.support.converter.DefaultClassMapper();
+        DefaultClassMapper classMapper = new DefaultClassMapper();
         
-        java.util.Map<String, Class<?>> idClassMapping = new java.util.HashMap<>();
+        Map<String, Class<?>> idClassMapping = new HashMap<>();
         idClassMapping.put("com.example.scheduler_worker.dto.LiveEventActivatedEvent", 
-                           com.example.webhook_worker.dto.LiveEventActivatedEvent.class);
+                           LiveEventActivatedEvent.class);
         idClassMapping.put("com.example.scheduler_worker.dto.LiveEventExpiredEvent", 
-                           com.example.webhook_worker.dto.LiveEventExpiredEvent.class);
+                           LiveEventExpiredEvent.class);
         
         classMapper.setIdClassMapping(idClassMapping);
         converter.setClassMapper(classMapper);

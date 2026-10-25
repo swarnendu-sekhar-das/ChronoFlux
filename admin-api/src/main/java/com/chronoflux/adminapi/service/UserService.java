@@ -3,15 +3,17 @@ package com.chronoflux.adminapi.service;
 import com.chronoflux.adminapi.model.User;
 import com.chronoflux.adminapi.repository.UserRepository;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
 
 @Service
 public class UserService {
     private final UserRepository userRepository;
 
-    @org.springframework.beans.factory.annotation.Value("${admin.allowed.emails:admin@chronoflux.com}")
-    private java.util.List<String> allowedAdmins;
+    @Value("${admin.allowed.emails:admin@chronoflux.com}")
+    private List<String> allowedAdmins;
 
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;

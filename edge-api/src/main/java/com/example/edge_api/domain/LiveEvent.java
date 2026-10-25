@@ -3,9 +3,11 @@ package com.example.edge_api.domain;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Entity
@@ -21,20 +23,20 @@ public class LiveEvent {
     @JdbcTypeCode(SqlTypes.JSON)
     private String payload;
 
-    @jakarta.persistence.Column(name = "created_at")
-    private java.time.Instant createdAt;
+    @Column(name = "created_at")
+    private Instant createdAt;
 
-    @jakarta.persistence.Column(name = "active_from")
-    private java.time.Instant activeFrom;
+    @Column(name = "active_from")
+    private Instant activeFrom;
 
-    @jakarta.persistence.Column(name = "active_until")
-    private java.time.Instant activeUntil;
+    @Column(name = "active_until")
+    private Instant activeUntil;
 
     public UUID getId() { return id; }
     public String getTitle() { return title; }
     public String getStatus() { return status; }
     public String getPayload() { return payload; }
-    public java.time.Instant getCreatedAt() { return createdAt; }
-    public java.time.Instant getActiveFrom() { return activeFrom; }
-    public java.time.Instant getActiveUntil() { return activeUntil; }
+    public Instant getCreatedAt() { return createdAt; }
+    public Instant getActiveFrom() { return activeFrom; }
+    public Instant getActiveUntil() { return activeUntil; }
 }

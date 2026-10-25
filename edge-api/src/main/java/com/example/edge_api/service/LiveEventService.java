@@ -1,5 +1,6 @@
 package com.example.edge_api.service;
 
+import com.example.edge_api.domain.LiveEvent;
 import com.example.edge_api.dto.LiveEventResponseDTO;
 import com.example.edge_api.mapper.LiveEventMapper;
 import com.example.edge_api.repository.LiveEventRepository;
@@ -27,7 +28,7 @@ public class LiveEventService {
     private final ObjectMapper objectMapper;
 
     public LiveEventService(LiveEventRepository repository, LiveEventMapper mapper,
-                            StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
+            StringRedisTemplate redisTemplate, ObjectMapper objectMapper) {
         this.repository = repository;
         this.mapper = mapper;
         this.redisTemplate = redisTemplate;
@@ -38,13 +39,15 @@ public class LiveEventService {
      * Returns all active events using Redis SET + individual key caching.
      * 
      * Fast Path: SMEMBERS active_event_ids → MGET events::id1, events::id2 → return
-     * Cold Start: SET is empty → query Postgres → populate SET + individual keys → return
+     * Cold Start: SET is empty → query Postgres → populate SET + individual keys →
+     * return
      */
     public List<LiveEventResponseDTO> getActiveEvents() {
         // Step 1: Read the SET of active event IDs from Redis
         Set<String> activeIds = redisTemplate.opsForSet().members(ACTIVE_IDS_KEY);
 
-        // Step 2: If SET is empty or doesn't exist, this is a cold start — rebuild from DB
+        // Step 2: If SET is empty or doesn't exist, this is a cold start — rebuild from
+        // DB
         if (activeIds == null || activeIds.isEmpty()) {
             logger.info("Redis SET '{}' is empty. Rebuilding from Postgres.", ACTIVE_IDS_KEY);
             return rebuildCacheFromDb();
@@ -78,7 +81,7 @@ public class LiveEventService {
      * Cold start: Query Postgres, populate the Redis SET and individual keys.
      */
     private List<LiveEventResponseDTO> rebuildCacheFromDb() {
-        List<com.example.edge_api.domain.LiveEvent> events = repository.findByStatus("ACTIVE");
+        List<LiveEvent> events = repository.findByStatus("ACTIVE");
         List<LiveEventResponseDTO> dtos = mapper.toDTOList(events);
 
         for (int i = 0; i < events.size(); i++) {

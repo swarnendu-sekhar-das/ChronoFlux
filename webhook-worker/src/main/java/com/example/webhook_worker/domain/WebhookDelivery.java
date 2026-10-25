@@ -3,6 +3,9 @@ package com.example.webhook_worker.domain;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -38,8 +41,8 @@ public class WebhookDelivery {
 
     private String targetUrl;
 
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
-    @jakarta.persistence.Column(columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb")
     private String payload;
 
     private String failureReason;
