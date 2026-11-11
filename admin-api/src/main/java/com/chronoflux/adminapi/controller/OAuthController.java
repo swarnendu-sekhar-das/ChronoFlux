@@ -4,6 +4,7 @@ import com.chronoflux.adminapi.service.TokenService;
 import com.chronoflux.adminapi.service.UserService;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,9 @@ public class OAuthController {
     }
 
     @PostMapping("/callback")
-    public ResponseEntity<?> callback(@RequestBody Map<String, String> payload, HttpServletResponse response) {
+    public ResponseEntity<?> callback(@RequestBody Map<String, String> payload,
+                                      HttpServletRequest request,
+                                      HttpServletResponse response) {
         String idTokenString = payload.get("idToken");
         
         GoogleIdToken.Payload tokenPayload = tokenService.verifyToken(idTokenString);
@@ -34,7 +37,8 @@ public class OAuthController {
             // HttpOnly prevents JS from reading the token, SameSite=Strict blocks CSRF
             Cookie cookie = new Cookie("AUTH_TOKEN", idTokenString);
             cookie.setHttpOnly(true);
-            cookie.setSecure(false); // TODO: set to true when deployed on HTTPS
+            // Set Secure flag dynamically: true if request is HTTPS or terminated via reverse proxy
+            cookie.setSecure(isSecureRequest(request));
             cookie.setAttribute("SameSite", "Strict");
             cookie.setPath("/");
             cookie.setMaxAge(3600); // 1 hour session
@@ -48,16 +52,23 @@ public class OAuthController {
     }
     
     @PostMapping("/signout")
-    public ResponseEntity<?> signout(HttpServletResponse response) {
-        // Clear cookie by setting maxAge=0 (same path and flags as the original)
+    public ResponseEntity<?> signout(HttpServletRequest request, HttpServletResponse response) {
+        // Clear cookie by setting maxAge=0 (matching same path and secure flag)
         Cookie cookie = new Cookie("AUTH_TOKEN", null);
         cookie.setHttpOnly(true);
-        cookie.setSecure(false);
+        cookie.setSecure(isSecureRequest(request));
         cookie.setAttribute("SameSite", "Strict");
         cookie.setPath("/");
         cookie.setMaxAge(0);
         
         response.addCookie(cookie);
         return ResponseEntity.ok(Map.of("message", "Logged out"));
+    }
+
+    private boolean isSecureRequest(HttpServletRequest request) {
+        if (request == null) {
+            return false;
+        }
+        return request.isSecure() || "https".equalsIgnoreCase(request.getHeader("X-Forwarded-Proto"));
     }
 }

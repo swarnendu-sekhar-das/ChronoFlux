@@ -1,9 +1,12 @@
 package com.chronoflux.adminapi.model;
 
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 import java.time.Instant;
@@ -17,8 +20,9 @@ public class Webhook {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "schema_id")
-    private UUID schemaId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "schema_id", nullable = false)
+    private EventSchema schema;
 
     @Column(name = "target_url", nullable = false, length = 2048)
     private String targetUrl;
@@ -32,8 +36,12 @@ public class Webhook {
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
-    public UUID getSchemaId() { return schemaId; }
-    public void setSchemaId(UUID schemaId) { this.schemaId = schemaId; }
+    public EventSchema getSchema() { return schema; }
+    public void setSchema(EventSchema schema) { this.schema = schema; }
+
+    public UUID getSchemaId() {
+        return schema != null ? schema.getId() : null;
+    }
 
     public String getTargetUrl() { return targetUrl; }
     public void setTargetUrl(String targetUrl) { this.targetUrl = targetUrl; }
