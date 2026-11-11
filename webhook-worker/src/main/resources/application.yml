@@ -36,3 +36,6 @@ resilience4j:
           - java.net.SocketTimeoutException
           - java.net.ConnectException
           - org.springframework.web.reactive.function.client.WebClientRequestException
+          - com.example.webhook_worker.exception.RetryableWebhookException
+        ignore-exceptions:
+          - com.example.webhook_worker.exception.NonRetryableWebhookException

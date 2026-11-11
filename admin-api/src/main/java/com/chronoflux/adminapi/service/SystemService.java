@@ -8,8 +8,7 @@ import org.springframework.stereotype.Service;
 
 import com.chronoflux.adminapi.dto.SystemStatusDTO;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @Service
 public class SystemService {
@@ -27,7 +26,8 @@ public class SystemService {
 
     public SystemStatusDTO getSystemStatus() {
         long activeEvents = liveEventRepository.countByStatus(EventStatus.ACTIVE);
-        long pendingWebhooks = webhookDeliveryRepository.countByStatus("PENDING");
+        // "PENDING" was a string mismatch bug; worker records "ATTEMPTING" and "RETRYING"
+        long pendingWebhooks = webhookDeliveryRepository.countByStatusIn(List.of("ATTEMPTING", "RETRYING"));
         long totalUsers = userRepository.count();
 
         return new SystemStatusDTO(activeEvents, pendingWebhooks, totalUsers, "HEALTHY");

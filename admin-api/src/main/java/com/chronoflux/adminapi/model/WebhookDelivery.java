@@ -6,6 +6,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -23,6 +25,9 @@ public class WebhookDelivery {
     @Column(name = "event_id")
     private UUID eventId;
 
+    @Column(name = "event_type")
+    private String eventType;
+
     @Column(name = "status", nullable = false)
     private String status;
 
@@ -38,6 +43,16 @@ public class WebhookDelivery {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "target_url")
+    private String targetUrl;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "payload", columnDefinition = "jsonb")
+    private String payload;
+
+    @Column(name = "failure_reason")
+    private String failureReason;
+
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
@@ -46,6 +61,9 @@ public class WebhookDelivery {
 
     public UUID getEventId() { return eventId; }
     public void setEventId(UUID eventId) { this.eventId = eventId; }
+
+    public String getEventType() { return eventType; }
+    public void setEventType(String eventType) { this.eventType = eventType; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
@@ -61,4 +79,13 @@ public class WebhookDelivery {
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public String getTargetUrl() { return targetUrl; }
+    public void setTargetUrl(String targetUrl) { this.targetUrl = targetUrl; }
+
+    public String getPayload() { return payload; }
+    public void setPayload(String payload) { this.payload = payload; }
+
+    public String getFailureReason() { return failureReason; }
+    public void setFailureReason(String failureReason) { this.failureReason = failureReason; }
 }

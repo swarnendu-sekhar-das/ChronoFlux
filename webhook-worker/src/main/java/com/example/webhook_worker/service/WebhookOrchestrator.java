@@ -8,7 +8,6 @@ import com.example.webhook_worker.repository.WebhookDeliveryRepository;
 import com.example.webhook_worker.repository.WebhookRepository;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -24,16 +23,16 @@ public class WebhookOrchestrator {
 
     private final WebhookRepository webhookRepository;
     private final WebhookDeliveryRepository deliveryRepository;
-    private final WebhookHttpClient httpClient;
+    private final WebhookDispatcherService dispatcherService;
     private final ObjectMapper objectMapper;
 
     public WebhookOrchestrator(WebhookRepository webhookRepository,
                                WebhookDeliveryRepository deliveryRepository,
-                               WebhookHttpClient httpClient,
+                               WebhookDispatcherService dispatcherService,
                                ObjectMapper objectMapper) {
         this.webhookRepository = webhookRepository;
         this.deliveryRepository = deliveryRepository;
-        this.httpClient = httpClient;
+        this.dispatcherService = dispatcherService;
         this.objectMapper = objectMapper;
     }
 
@@ -51,15 +50,23 @@ public class WebhookOrchestrator {
     }
 
     public void processEvent(LiveEventActivatedEvent event) {
-        logger.info("Processing webhook delivery for event ID: {}", event.getEventId());
+        logger.info("Processing webhook delivery for activated event ID: {}", event.getEventId());
 
         List<Webhook> webhooks = webhookRepository.findBySchemaIdAndIsActiveTrue(event.getSchemaId());
 
         for (Webhook webhook : webhooks) {
+            // Consumer Idempotency Check: prevent duplicate delivery on RabbitMQ redelivery
+            if (deliveryRepository.existsByWebhookIdAndEventIdAndEventType(webhook.getId(), event.getEventId(), "ACTIVATED")) {
+                logger.info("Delivery already exists for webhook {} and event {} (ACTIVATED). Skipping duplicate.",
+                        webhook.getId(), event.getEventId());
+                continue;
+            }
+
             WebhookDelivery delivery = new WebhookDelivery();
             delivery.setId(UUID.randomUUID());
             delivery.setWebhookId(webhook.getId());
             delivery.setEventId(event.getEventId());
+            delivery.setEventType("ACTIVATED");
             delivery.setTargetUrl(webhook.getTargetUrl());
             
             try {
@@ -69,13 +76,15 @@ public class WebhookOrchestrator {
                 logger.error("Failed to serialize webhook envelope", e);
                 continue;
             }
+
             delivery.setStatus("ATTEMPTING");
             delivery.setAttemptCount(1);
             delivery.setCreatedAt(ZonedDateTime.now());
             delivery.setLastAttemptAt(ZonedDateTime.now());
             deliveryRepository.save(delivery);
 
-            deliverWithRetry(delivery);
+            // Delegated to WebhookDispatcherService to ensure Spring @Retry AOP proxy intercepts
+            dispatcherService.deliverWithRetry(delivery);
         }
     }
 
@@ -85,10 +94,18 @@ public class WebhookOrchestrator {
         List<Webhook> webhooks = webhookRepository.findBySchemaIdAndIsActiveTrue(event.getSchemaId());
 
         for (Webhook webhook : webhooks) {
+            // Consumer Idempotency Check: prevent duplicate delivery for EXPIRED lifecycle
+            if (deliveryRepository.existsByWebhookIdAndEventIdAndEventType(webhook.getId(), event.getEventId(), "EXPIRED")) {
+                logger.info("Delivery already exists for webhook {} and event {} (EXPIRED). Skipping duplicate.",
+                        webhook.getId(), event.getEventId());
+                continue;
+            }
+
             WebhookDelivery delivery = new WebhookDelivery();
             delivery.setId(UUID.randomUUID());
             delivery.setWebhookId(webhook.getId());
             delivery.setEventId(event.getEventId());
+            delivery.setEventType("EXPIRED");
             delivery.setTargetUrl(webhook.getTargetUrl());
             
             try {
@@ -105,31 +122,8 @@ public class WebhookOrchestrator {
             delivery.setLastAttemptAt(ZonedDateTime.now());
             deliveryRepository.save(delivery);
 
-            deliverWithRetry(delivery);
+            // Delegated to WebhookDispatcherService to ensure Spring @Retry AOP proxy intercepts
+            dispatcherService.deliverWithRetry(delivery);
         }
-    }
-
-    @Retry(name = "webhookRetry", fallbackMethod = "markAsFailed")
-    public void deliverWithRetry(WebhookDelivery delivery) {
-        logger.info("Delivering to URL: {}", delivery.getTargetUrl());
-        httpClient.sendPayload(delivery.getTargetUrl(), delivery.getPayload());
-
-        // If we reach here, the HTTP call succeeded
-        delivery.setStatus("SUCCESS");
-        delivery.setResponseCode(200);
-        delivery.setLastAttemptAt(ZonedDateTime.now());
-        deliveryRepository.save(delivery);
-        logger.info("Delivery {} successful", delivery.getId());
-    }
-
-    /**
-     * Resilience4j fallback — called after all retry attempts are exhausted.
-     */
-    public void markAsFailed(WebhookDelivery delivery, Exception e) {
-        logger.error("Delivery {} failed after all retries: {}", delivery.getId(), e.getMessage());
-        delivery.setStatus("FAILED");
-        delivery.setFailureReason(e.getMessage());
-        delivery.setLastAttemptAt(ZonedDateTime.now());
-        deliveryRepository.save(delivery);
     }
 }
