@@ -1,6 +1,7 @@
 package com.chronoflux.adminapi.service;
 
 import com.chronoflux.adminapi.dto.LiveEventCreateDTO;
+import com.chronoflux.adminapi.dto.LiveEventDTO;
 import com.chronoflux.adminapi.dto.LiveEventUpdateDTO;
 import com.chronoflux.adminapi.mapper.LiveEventMapper;
 import com.chronoflux.adminapi.model.EventStatus;
@@ -14,12 +15,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -37,6 +39,9 @@ class LiveEventServiceTest {
 
     @Mock
     private StringRedisTemplate redisTemplate;
+
+    @Mock
+    private org.springframework.data.redis.core.SetOperations<String, String> setOperations;
 
     private LiveEventService liveEventService;
 
@@ -92,5 +97,84 @@ class LiveEventServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> liveEventService.updateEvent(eventId, updateDTO));
         verify(eventRepository, never()).save(existingEvent);
+    }
+
+    @Test
+    void archiveEvent_HappyPath_UpdatesDatabaseAndReturnsDTO() {
+        UUID eventId = UUID.randomUUID();
+        LiveEvent existingEvent = new LiveEvent();
+        existingEvent.setId(eventId);
+        existingEvent.setStatus(EventStatus.ACTIVE);
+
+        LiveEventDTO dto = new LiveEventDTO();
+        dto.setId(eventId);
+        dto.setStatus(EventStatus.ARCHIVED);
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(existingEvent));
+        when(eventRepository.save(any(LiveEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventMapper.toDTO(any(LiveEvent.class))).thenReturn(dto);
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+
+        Optional<LiveEventDTO> result = liveEventService.archiveEvent(eventId);
+
+        assertTrue(result.isPresent());
+        assertEquals(EventStatus.ARCHIVED, result.get().getStatus());
+        assertEquals(EventStatus.ARCHIVED, existingEvent.getStatus());
+        verify(eventRepository, times(1)).save(existingEvent);
+    }
+
+    @Test
+    void archiveEvent_WhenRedisThrowsException_StillArchivesSuccessfullyInDatabase() {
+        UUID eventId = UUID.randomUUID();
+        LiveEvent existingEvent = new LiveEvent();
+        existingEvent.setId(eventId);
+        existingEvent.setStatus(EventStatus.ACTIVE);
+
+        LiveEventDTO dto = new LiveEventDTO();
+        dto.setId(eventId);
+        dto.setStatus(EventStatus.ARCHIVED);
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(existingEvent));
+        when(eventRepository.save(any(LiveEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(eventMapper.toDTO(any(LiveEvent.class))).thenReturn(dto);
+        when(redisTemplate.opsForSet()).thenReturn(setOperations);
+
+        // Simulate Redis failure when accessing Redis template
+        when(redisTemplate.opsForSet()).thenThrow(new RuntimeException("Redis connection refused"));
+
+        Optional<LiveEventDTO> result = liveEventService.archiveEvent(eventId);
+
+        assertTrue(result.isPresent());
+        assertEquals(EventStatus.ARCHIVED, result.get().getStatus());
+        assertEquals(EventStatus.ARCHIVED, existingEvent.getStatus());
+        verify(eventRepository, times(1)).save(existingEvent);
+    }
+
+    @Test
+    void archiveEvent_WithTransactionSynchronizationActive_RegistersAfterCommitHook() {
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            UUID eventId = UUID.randomUUID();
+            LiveEvent existingEvent = new LiveEvent();
+            existingEvent.setId(eventId);
+            existingEvent.setStatus(EventStatus.ACTIVE);
+
+            LiveEventDTO dto = new LiveEventDTO();
+            dto.setId(eventId);
+            dto.setStatus(EventStatus.ARCHIVED);
+
+            when(eventRepository.findById(eventId)).thenReturn(Optional.of(existingEvent));
+            when(eventRepository.save(any(LiveEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+            when(eventMapper.toDTO(any(LiveEvent.class))).thenReturn(dto);
+
+            Optional<LiveEventDTO> result = liveEventService.archiveEvent(eventId);
+
+            assertTrue(result.isPresent());
+            assertEquals(EventStatus.ARCHIVED, result.get().getStatus());
+            // Verify AFTER_COMMIT synchronization hook was registered
+            assertFalse(TransactionSynchronizationManager.getSynchronizations().isEmpty());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 }

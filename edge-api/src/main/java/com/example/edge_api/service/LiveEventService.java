@@ -13,6 +13,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -141,7 +142,18 @@ public class LiveEventService {
 
             if (json != null) {
                 try {
-                    results.add(objectMapper.readValue(json, LiveEventResponseDTO.class));
+                    LiveEventResponseDTO dto = objectMapper.readValue(json, LiveEventResponseDTO.class);
+                    // Defensive guard: if an event expired past activeUntil, filter it out from active results
+                    if (dto.getActiveUntil() != null) {
+                        try {
+                            if (Instant.parse(dto.getActiveUntil()).isBefore(Instant.now())) {
+                                logger.debug("Skipping cached event {} because activeUntil ({}) has elapsed",
+                                        eventIdStr, dto.getActiveUntil());
+                                continue;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    results.add(dto);
                 } catch (JsonProcessingException e) {
                     logger.warn("Failed to deserialize cached event {}, marking for DB re-fetch.", eventIdStr);
                     try {
@@ -162,16 +174,48 @@ public class LiveEventService {
             List<LiveEvent> missingEvents = repository.findAllById(missingUuids);
             List<LiveEventResponseDTO> missingDtos = mapper.toDTOList(missingEvents);
 
+            Set<UUID> foundUuids = new HashSet<>();
             for (int i = 0; i < missingEvents.size(); i++) {
                 LiveEvent event = missingEvents.get(i);
                 LiveEventResponseDTO dto = missingDtos.get(i);
-                results.add(dto);
+                foundUuids.add(event.getId());
 
-                try {
-                    String json = objectMapper.writeValueAsString(dto);
-                    redisTemplate.opsForValue().set(EVENT_KEY_PREFIX + event.getId(), json, Duration.ofHours(24));
-                } catch (Exception e) {
-                    logger.warn("Failed to heal Redis cache key for event {}", event.getId(), e);
+                // Read-repair: verify that the event is still genuinely ACTIVE in PostgreSQL
+                if ("ACTIVE".equalsIgnoreCase(event.getStatus())) {
+                    boolean expired = false;
+                    if (dto.getActiveUntil() != null) {
+                        try {
+                            if (Instant.parse(dto.getActiveUntil()).isBefore(Instant.now())) {
+                                expired = true;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                    if (!expired) {
+                        results.add(dto);
+                        try {
+                            String json = objectMapper.writeValueAsString(dto);
+                            redisTemplate.opsForValue().set(EVENT_KEY_PREFIX + event.getId(), json, Duration.ofHours(24));
+                        } catch (Exception e) {
+                            logger.warn("Failed to heal Redis cache key for event {}", event.getId(), e);
+                        }
+                    }
+                } else {
+                    // Stale ID in active_event_ids: event was ARCHIVED or EXPIRED in DB.
+                    // Lazily purge the stale ID from the active set so future requests don't miss.
+                    try {
+                        redisTemplate.opsForSet().remove(ACTIVE_IDS_KEY, event.getId().toString());
+                    } catch (Exception e) {
+                        logger.warn("Failed to remove stale event ID {} from active set: {}", event.getId(), e.getMessage());
+                    }
+                }
+            }
+
+            // Also purge any IDs that were deleted from PostgreSQL entirely
+            for (UUID missingId : missingUuids) {
+                if (!foundUuids.contains(missingId)) {
+                    try {
+                        redisTemplate.opsForSet().remove(ACTIVE_IDS_KEY, missingId.toString());
+                    } catch (Exception ignored) {}
                 }
             }
         }
@@ -196,6 +240,15 @@ public class LiveEventService {
                 logger.error("Failed to serialize event {} for Redis cache.", id, e);
             }
         }
+
+        // Set bounded TTL on the active_event_ids set (3 minutes) so any stale membership self-heals
+        // even if a manual eviction or network partition prevented cache clearing.
+        try {
+            redisTemplate.expire(ACTIVE_IDS_KEY, Duration.ofMinutes(3));
+        } catch (Exception e) {
+            logger.warn("Could not set TTL on active_event_ids: {}", e.getMessage());
+        }
+
         return dtos;
     }
 

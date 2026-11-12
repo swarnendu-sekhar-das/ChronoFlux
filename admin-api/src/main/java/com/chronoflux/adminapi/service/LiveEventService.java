@@ -10,8 +10,12 @@ import com.chronoflux.adminapi.model.LiveEvent;
 import com.chronoflux.adminapi.repository.EventSchemaRepository;
 import com.chronoflux.adminapi.repository.LiveEventRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import com.networknt.schema.JsonSchema;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
@@ -25,9 +29,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class LiveEventService {
+
+    private static final Logger logger = LoggerFactory.getLogger(LiveEventService.class);
 
     private final LiveEventRepository eventRepository;
     private final EventSchemaRepository schemaRepository;
@@ -114,10 +121,58 @@ public class LiveEventService {
             event.setStatus(EventStatus.ARCHIVED);
             LiveEvent archivedEvent = eventRepository.save(event);
             LiveEventDTO dto = eventMapper.toDTO(archivedEvent);
-            // If it was active and we archived it, remove from cache
-            redisTemplate.opsForSet().remove("active_event_ids", archivedEvent.getId().toString());
-            redisTemplate.delete("events::" + archivedEvent.getId());
+
+            UUID eventId = archivedEvent.getId();
+
+            // Defer surgical cache eviction to AFTER_COMMIT so Redis outages never roll back the DB write.
+            // Even if Redis is down, PostgreSQL (the System of Record) successfully commits the state.
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        evictEventFromCacheWithRetry(eventId);
+                    }
+                });
+            } else {
+                evictEventFromCacheWithRetry(eventId);
+            }
+
             return dto;
+        });
+    }
+
+    /**
+     * Asynchronously evicts the archived event from Redis cache with retry and backoff.
+     * If Redis is experiencing a momentary network blip or failover, retries in the background
+     * without blocking the admin HTTP response or failing the database commit.
+     */
+    private void evictEventFromCacheWithRetry(UUID eventId) {
+        CompletableFuture.runAsync(() -> {
+            int maxAttempts = 3;
+            long backoffMs = 1000;
+
+            for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+                try {
+                    redisTemplate.opsForSet().remove("active_event_ids", eventId.toString());
+                    redisTemplate.delete("events::" + eventId);
+                    logger.info("Successfully evicted archived event {} from Redis cache on attempt {}", eventId, attempt);
+                    return;
+                } catch (Exception e) {
+                    logger.warn("Eviction attempt {}/{} failed for event {} due to Redis error: {}. Retrying in {}ms...",
+                            attempt, maxAttempts, eventId, e.getMessage(), backoffMs);
+                    if (attempt < maxAttempts) {
+                        try {
+                            Thread.sleep(backoffMs);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            return;
+                        }
+                        backoffMs *= 2;
+                    }
+                }
+            }
+            logger.error("Failed to evict archived event {} from Redis after {} attempts. Cache will rely on TTL expiration.",
+                    eventId, maxAttempts);
         });
     }
 }

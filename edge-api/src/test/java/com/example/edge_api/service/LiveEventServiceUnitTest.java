@@ -86,6 +86,7 @@ class LiveEventServiceUnitTest {
 
         LiveEvent mockDbEvent = mock(LiveEvent.class);
         when(mockDbEvent.getId()).thenReturn(event2);
+        when(mockDbEvent.getStatus()).thenReturn("ACTIVE");
 
         LiveEventResponseDTO dto2 = new LiveEventResponseDTO();
         dto2.setId(event2);
@@ -100,5 +101,38 @@ class LiveEventServiceUnitTest {
         assertEquals(2, results.size());
         // Verify cache healing backfilled Redis for event2
         verify(valueOperations, times(1)).set(eq("events::" + event2), any(), any());
+    }
+
+    @Test
+    void getActiveEvents_PartialCacheMiss_WhenDbEventIsArchived_FiltersOutAndCleansStaleActiveId() {
+        UUID event1 = UUID.randomUUID();
+        UUID event2 = UUID.randomUUID();
+        String json1 = "{\"id\":\"" + event1 + "\",\"title\":\"Event 1\",\"status\":\"ACTIVE\"}";
+
+        // event1 is cached, event2 was evicted/missing from Redis string cache
+        when(setOperations.members("active_event_ids")).thenReturn(new LinkedHashSet<>(List.of(event1.toString(), event2.toString())));
+        when(valueOperations.multiGet(List.of("events::" + event1, "events::" + event2))).thenReturn(Arrays.asList(json1, null));
+
+        LiveEvent mockDbEvent = mock(LiveEvent.class);
+        when(mockDbEvent.getId()).thenReturn(event2);
+        when(mockDbEvent.getStatus()).thenReturn("ARCHIVED");
+
+        LiveEventResponseDTO dto2 = new LiveEventResponseDTO();
+        dto2.setId(event2);
+        dto2.setTitle("Event 2");
+        dto2.setStatus("ARCHIVED");
+
+        when(repository.findAllById(List.of(event2))).thenReturn(List.of(mockDbEvent));
+        when(mapper.toDTOList(List.of(mockDbEvent))).thenReturn(List.of(dto2));
+
+        List<LiveEventResponseDTO> results = service.getActiveEvents();
+
+        // Stale ARCHIVED event is filtered out; only ACTIVE event1 returned
+        assertEquals(1, results.size());
+        assertEquals("Event 1", results.get(0).getTitle());
+
+        // Stale event2 ID is purged from active_event_ids
+        verify(setOperations, times(1)).remove("active_event_ids", event2.toString());
+        verify(valueOperations, never()).set(eq("events::" + event2), any(), any());
     }
 }
