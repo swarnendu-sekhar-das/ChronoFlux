@@ -171,8 +171,18 @@ class LiveEventServiceTest {
 
             assertTrue(result.isPresent());
             assertEquals(EventStatus.ARCHIVED, result.get().getStatus());
+
             // Verify AFTER_COMMIT synchronization hook was registered
-            assertFalse(TransactionSynchronizationManager.getSynchronizations().isEmpty());
+            java.util.List<org.springframework.transaction.support.TransactionSynchronization> synchronizations =
+                    TransactionSynchronizationManager.getSynchronizations();
+            assertFalse(synchronizations.isEmpty());
+
+            // Simulate Spring committing the transaction: triggers afterCommit()
+            when(redisTemplate.opsForSet()).thenReturn(setOperations);
+            synchronizations.get(0).afterCommit();
+
+            // Verify eviction was invoked asynchronously without errors
+            verify(redisTemplate, atLeastOnce()).opsForSet();
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }

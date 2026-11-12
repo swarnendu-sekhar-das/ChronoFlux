@@ -135,4 +135,56 @@ class LiveEventServiceUnitTest {
         verify(setOperations, times(1)).remove("active_event_ids", event2.toString());
         verify(valueOperations, never()).set(eq("events::" + event2), any(), any());
     }
+
+    @Test
+    void getActiveEvents_ColdStart_AcquiresLockAndRebuildsCacheWithBoundedTTL() {
+        UUID eventId = UUID.randomUUID();
+        when(setOperations.members("active_event_ids")).thenReturn(Collections.emptySet());
+        when(valueOperations.setIfAbsent(eq("lock:rebuild_active_events"), eq("locked"), any(java.time.Duration.class)))
+                .thenReturn(true);
+
+        LiveEvent mockEvent = mock(LiveEvent.class);
+        when(mockEvent.getId()).thenReturn(eventId);
+
+        LiveEventResponseDTO dto = new LiveEventResponseDTO();
+        dto.setId(eventId);
+        dto.setTitle("Cold Start Event");
+        dto.setStatus("ACTIVE");
+
+        when(repository.findByStatus("ACTIVE")).thenReturn(List.of(mockEvent));
+        when(mapper.toDTOList(List.of(mockEvent))).thenReturn(List.of(dto));
+
+        List<LiveEventResponseDTO> results = service.getActiveEvents();
+
+        assertEquals(1, results.size());
+        assertEquals("Cold Start Event", results.get(0).getTitle());
+
+        // Verify Redis cache is populated with 3-minute TTL on active set and lock is released
+        verify(setOperations, times(1)).add("active_event_ids", eventId.toString());
+        verify(redisTemplate, times(1)).expire(eq("active_event_ids"), eq(java.time.Duration.ofMinutes(3)));
+        verify(redisTemplate, times(1)).delete("lock:rebuild_active_events");
+    }
+
+    @Test
+    void getActiveEvents_WhenCachedEventIsPastActiveUntil_FiltersOutExpiredEvent() {
+        UUID activeId = UUID.randomUUID();
+        UUID expiredId = UUID.randomUUID();
+
+        // One event is still active, one event has passed activeUntil
+        String futureTime = java.time.Instant.now().plusSeconds(3600).toString();
+        String pastTime = java.time.Instant.now().minusSeconds(3600).toString();
+
+        String jsonActive = "{\"id\":\"" + activeId + "\",\"title\":\"Active Event\",\"status\":\"ACTIVE\",\"activeUntil\":\"" + futureTime + "\"}";
+        String jsonExpired = "{\"id\":\"" + expiredId + "\",\"title\":\"Expired Event\",\"status\":\"ACTIVE\",\"activeUntil\":\"" + pastTime + "\"}";
+
+        when(setOperations.members("active_event_ids")).thenReturn(new LinkedHashSet<>(List.of(activeId.toString(), expiredId.toString())));
+        when(valueOperations.multiGet(List.of("events::" + activeId, "events::" + expiredId)))
+                .thenReturn(List.of(jsonActive, jsonExpired));
+
+        List<LiveEventResponseDTO> results = service.getActiveEvents();
+
+        // Expired event filtered out defensively by timestamp check
+        assertEquals(1, results.size());
+        assertEquals("Active Event", results.get(0).getTitle());
+    }
 }
